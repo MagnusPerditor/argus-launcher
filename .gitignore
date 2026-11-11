@@ -1,0 +1,4 @@
+node_modules/
+dist/
+test/mock-api.js
+test/fixture-*.json

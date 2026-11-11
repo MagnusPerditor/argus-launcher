@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src * file: data: blob:; media-src * file: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src *">
+<title>OmniLauncher</title>
+<style>
+:root{
+  --bg:#0b0d12; --bg2:#11141b; --panel:#161a23; --panel2:#1c2130; --line:#262c3b; --text:#e9ecf3; --dim:#8b93a7; --faint:#5b6377;
+  --accent:#f5b642; --ok:#3ecf8e; --bad:#ff6b6b; --radius:12px;
+  --c-movies:#f5b642; --c-tv:#4aa8ff; --c-musicvideos:#ff5fa2; --c-books:#3ecf8e; --c-music:#2dd4bf; --c-audiobooks:#a78bfa; --c-games:#b6f24a; --c-home:#f5b642; --c-setup:#9aa3b8;
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a3142;border-radius:10px;border:2px solid var(--bg)}::-webkit-scrollbar-track{background:transparent}
+
+#app{display:grid;grid-template-columns:232px 1fr;grid-template-rows:100%;height:100vh}
+#side,#main{min-height:0}
+/* ---------- sidebar ---------- */
+#side{background:linear-gradient(180deg,#0e1118,#0a0c11);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 22px;font-family:"Segoe UI Variable Display","Segoe UI",system-ui;font-weight:700;font-size:19px;letter-spacing:.2px}
+.brand .logo{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 200deg,var(--c-movies),var(--c-musicvideos),var(--c-audiobooks),var(--c-tv),var(--c-books),var(--c-games),var(--c-movies));display:grid;place-items:center}
+.brand .logo::after{content:"";width:12px;height:12px;border-radius:3px;background:var(--bg)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:12px;background:none;border:0;padding:10px 12px;border-radius:10px;color:var(--dim);text-align:left;font-size:14.5px;position:relative}
+.nav button svg{width:20px;height:20px;flex:none}
+.nav button .n{margin-left:auto;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+.nav button:hover{background:#151925;color:var(--text)}
+.nav button.on{background:#171c29;color:var(--text)}
+.nav button.on::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--cc)}
+.nav button.on svg{color:var(--cc)}
+.side-sep{height:1px;background:var(--line);margin:14px 6px}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:2px}
+#scanStatus{font-size:12px;color:var(--dim);padding:8px 12px 0;min-height:30px;line-height:1.35}
+#scanStatus .bar{height:3px;background:#222838;border-radius:3px;margin-top:6px;overflow:hidden}
+#scanStatus .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+
+/* ---------- main ---------- */
+#main{display:flex;flex-direction:column;min-width:0;position:relative}
+#top{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid transparent;position:relative;z-index:5}
+#search{flex:1;max-width:520px;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px}
+#search input{flex:1;background:none;border:0;outline:none;font-size:14px}
+#search kbd{font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+#view{flex:1;overflow:auto;padding:4px 28px 120px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel);padding:9px 16px;border-radius:10px;font-size:14px;white-space:nowrap}
+.btn:hover{background:var(--panel2)}
+.btn.primary{background:var(--cc,var(--accent));border-color:transparent;color:#10131a;font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.small{padding:6px 11px;font-size:12.5px;border-radius:8px}
+.btn.ghost{background:none}
+.btn svg{width:17px;height:17px}
+.btn:disabled{opacity:.45;cursor:default}
+
+h1.cat{font-family:"Segoe UI Variable Display","Segoe UI",system-ui;font-size:30px;margin:14px 0 4px;font-weight:700;letter-spacing:-.3px}
+.sub{color:var(--dim);font-size:13.5px}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:18px 0 18px}
+.chip{border:1px solid var(--line);background:none;border-radius:999px;padding:6px 13px;font-size:13px;color:var(--dim)}
+.chip:hover{color:var(--text)}
+.chip.on{background:var(--text);color:#0b0d12;border-color:var(--text);font-weight:600}
+.toolbar .sp{flex:1}
+select.sel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+
+/* service strip */
+.services{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.svc{display:flex;align-items:center;gap:9px;padding:8px 14px 8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:13.5px;font-weight:600}
+.svc:hover{border-color:var(--sc)}
+.svc .dot{width:22px;height:22px;border-radius:6px;background:var(--sc);display:grid;place-items:center;font-size:11px;font-weight:800;color:#0b0d12}
+.svc.big{padding:11px 18px 11px 12px;font-size:14.5px}
+.svc.big .dot{width:26px;height:26px}
+
+/* grid + cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--cw,158px),1fr));gap:22px 16px}
+.grid.wide{--cw:250px}.grid.square{--cw:170px}
+.card{cursor:pointer;min-width:0;outline:none}
+.card .art{position:relative;aspect-ratio:2/3;border-radius:var(--radius);overflow:hidden;background:var(--panel);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 30px -18px #000;transition:transform .18s ease,box-shadow .18s}
+.grid.wide .card .art,.row.wide .card .art{aspect-ratio:16/9}
+.grid.square .card .art,.row.square .card .art{aspect-ratio:1}
+.card:hover .art,.card:focus .art{transform:translateY(-4px);box-shadow:0 0 0 2px var(--cc,var(--accent)),0 18px 40px -16px #000}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.card img.logo{object-fit:contain;padding:22%;background:radial-gradient(circle at 50% 40%,#232a3a,#141822)}
+.ph{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:14px;background:linear-gradient(160deg,color-mix(in srgb,var(--cc) 30%,#1a1f2c),#10131b 75%)}
+.ph b{font-family:"Segoe UI Variable Display","Segoe UI",system-ui;font-size:17px;line-height:1.15;word-break:break-word}
+.ph span{font-size:12px;color:var(--dim);margin-top:4px}
+.badges{position:absolute;left:8px;top:8px;display:flex;gap:4px;flex-wrap:wrap}
+.badge{font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:3px 7px;border-radius:6px;background:rgba(10,12,18,.82);backdrop-filter:blur(6px);color:#dfe4ee;text-transform:uppercase}
+.badge.tb{color:#7fe3c2}.badge.cloud{color:#9fd0ff}.badge.gp{color:#b6f24a}.badge.ps{color:#7fa8ff}
+.card .t{margin-top:9px;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .m{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.card .prog{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(0,0,0,.5)}.card .prog i{display:block;height:100%;background:var(--cc)}
+
+/* home */
+.hero{position:relative;margin:4px 0 30px;border-radius:18px;overflow:hidden;min-height:340px;display:flex;align-items:flex-end;background:#121621}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.75}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,13,18,.96) 0%,rgba(11,13,18,.6) 45%,rgba(11,13,18,.05) 100%),linear-gradient(0deg,rgba(11,13,18,.9),transparent 50%)}
+.hero .in{position:relative;z-index:1;padding:34px 38px;max-width:620px}
+.hero .kick{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--cc)}
+.hero h2{font-family:"Segoe UI Variable Display","Segoe UI",system-ui;font-size:40px;margin:8px 0 10px;line-height:1.05;letter-spacing:-.5px}
+.hero p{color:#c6ccda;line-height:1.55;font-size:14.5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rowhead{display:flex;align-items:baseline;gap:12px;margin:26px 0 12px}
+.rowhead h3{margin:0;font-size:18px;font-family:"Segoe UI Variable Display","Segoe UI",system-ui}
+.rowhead button{background:none;border:0;color:var(--dim);font-size:13px}
+.rowhead button:hover{color:var(--text)}
+.row{display:grid;grid-auto-flow:column;grid-auto-columns:150px;gap:16px;overflow-x:auto;padding:4px 2px 14px}
+.row.wide{grid-auto-columns:250px}.row.square{grid-auto-columns:160px}
+.empty{border:1px dashed var(--line);border-radius:16px;padding:46px;text-align:center;color:var(--dim);line-height:1.6}
+.empty b{color:var(--text);font-size:17px;display:block;margin-bottom:6px}
+
+/* detail */
+#detail{position:absolute;inset:0;z-index:20;background:rgba(5,6,9,.6);backdrop-filter:blur(3px);display:none}
+#detail.on{display:block}
+#detail .sheet{position:absolute;inset:18px 18px 18px 18px;background:var(--bg2);border:1px solid var(--line);border-radius:18px;overflow:auto}
+#detail .bd{position:relative;height:360px;background:#121621}
+#detail .bd img{width:100%;height:100%;object-fit:cover;opacity:.55}
+#detail .bd::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--bg2) 3%,rgba(17,20,27,.25) 60%,rgba(17,20,27,.5))}
+#detail .x{position:absolute;right:16px;top:16px;z-index:3;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgba(11,13,18,.7);display:grid;place-items:center}
+.dwrap{display:grid;grid-template-columns:230px 1fr;gap:34px;padding:0 40px 40px;margin-top:-210px;position:relative;z-index:2}
+.dwrap .poster{border-radius:14px;overflow:hidden;aspect-ratio:2/3;background:var(--panel);box-shadow:0 30px 60px -25px #000}
+.dwrap .poster.sq{aspect-ratio:1}.dwrap .poster.wd{aspect-ratio:16/9}
+.dwrap .poster img{width:100%;height:100%;object-fit:cover}
+.dwrap .poster img.logo{object-fit:contain;padding:20%}
+.dtitle{font-family:"Segoe UI Variable Display","Segoe UI",system-ui;font-size:38px;font-weight:700;margin:96px 0 8px;letter-spacing:-.5px;line-height:1.05}
+.facts{display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--dim);font-size:13.5px;align-items:center}
+.facts .rate{color:var(--accent);font-weight:700}
+.overview{max-width:780px;line-height:1.65;color:#cdd3df;font-size:14.5px;margin:16px 0 0}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 8px}
+.sect{margin-top:28px}
+.sect h4{margin:0 0 12px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim)}
+.filelist{display:flex;flex-direction:column;gap:6px;max-width:860px}
+.frow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px}
+.frow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
+.frow .src{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:#232a3a}
+.frow .src.tb{color:#7fe3c2}
+.seasons{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.eps{display:flex;flex-direction:column;gap:8px;max-width:980px}
+.ep{display:grid;grid-template-columns:160px 1fr auto;gap:16px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+.ep.miss{opacity:.5}
+.ep .still{aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#20263a;display:grid;place-items:center;color:var(--faint);font-weight:700}
+.ep .still img{width:100%;height:100%;object-fit:cover}
+.ep .et{font-weight:600;font-size:14px}.ep .eo{font-size:12.5px;color:var(--dim);margin-top:4px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ep .eb{display:flex;gap:6px;flex-direction:column;align-items:stretch}
+.provs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.provs img{width:34px;height:34px;border-radius:8px}
+.note{font-size:12.5px;color:var(--dim);line-height:1.5}
+
+/* setup */
+.setup{max-width:1020px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:18px 0 22px;overflow-x:auto}
+.tabs button{background:none;border:0;padding:10px 16px;color:var(--dim);border-bottom:2px solid transparent;margin-bottom:-1px;font-size:14px;white-space:nowrap}
+.tabs button.on{color:var(--text);border-color:var(--tc,var(--accent))}
+.card2{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:16px}
+.card2 h3{margin:0 0 4px;font-size:16px}
+.card2 > .sub{margin-bottom:14px}
+.field{display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:center;padding:9px 0}
+.field label{color:var(--dim);font-size:13.5px}
+.inp{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:13.5px;outline:none}
+.inp:focus{border-color:var(--accent)}
+.inline{display:flex;gap:8px;align-items:center}
+.folders{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.folder{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-family:Consolas,ui-monospace,monospace}
+.folder span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder button{background:none;border:0;color:var(--faint);font-size:17px;line-height:1}
+.folder button:hover{color:var(--bad)}
+.svcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:8px}
+.svct{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--bg);font-size:13.5px;text-align:left}
+.svct .dot{width:20px;height:20px;border-radius:5px;background:var(--sc);flex:none}
+.svct .ck{margin-left:auto;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--faint);display:grid;place-items:center}
+.svct.on{border-color:var(--sc);background:color-mix(in srgb,var(--sc) 9%,var(--bg))}
+.svct.on .ck{background:var(--sc);border-color:var(--sc)}
+.svct.on .ck::after{content:"";width:8px;height:5px;border:2px solid #0b0d12;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.tog{display:flex;align-items:center;gap:12px;padding:8px 0;font-size:14px;cursor:pointer}
+.tog input{display:none}
+.tog .sw{width:38px;height:22px;border-radius:999px;background:#2a3142;position:relative;flex:none;transition:background .15s}
+.tog .sw::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#cfd5e2;transition:transform .15s}
+.tog input:checked + .sw{background:var(--tc,var(--accent))}
+.tog input:checked + .sw::after{transform:translateX(16px);background:#0b0d12}
+.tog small{color:var(--dim);display:block;font-size:12.5px;margin-top:2px}
+.tog.dis{opacity:.5;pointer-events:none}
+.subgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 26px}
+.savebar{position:sticky;bottom:-4px;z-index:4;display:flex;gap:10px;justify-content:flex-end;padding:16px 0;background:linear-gradient(0deg,var(--bg) 60%,transparent)}
+.welcome{background:linear-gradient(120deg,#1b2030,#141823);border:1px solid var(--line);border-radius:16px;padding:22px 26px;margin-top:16px;line-height:1.6;color:#c6ccda}
+.welcome b{color:var(--text);font-size:18px}
+.keyok{font-size:12.5px;margin-left:8px}
+.keyok.ok{color:var(--ok)}.keyok.bad{color:var(--bad)}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:#232a3a;color:var(--dim);margin-left:6px;vertical-align:middle}
+
+/* audiobook player */
+#ab{position:absolute;left:16px;right:16px;bottom:14px;z-index:15;background:rgba(22,26,35,.94);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;display:none;align-items:center;gap:16px;padding:10px 16px 10px 10px;box-shadow:0 20px 50px -20px #000}
+#ab.on{display:flex}
+#ab #abShuf{display:none}
+#ab.music #abShuf{display:grid}
+#ab.music #abBack,#ab.music #abFwd,#ab.music #abRate{display:none}
+#ab #abShuf.on{color:var(--pc);background:#262c3b}
+#ab input[type=range]{accent-color:var(--pc,var(--c-audiobooks))}
+.frow.now{border-color:var(--cc)}.frow.now .nm{color:var(--text)}
+#main.abon .savebar{bottom:86px}
+#ab img{width:54px;height:54px;border-radius:9px;object-fit:cover;background:var(--panel2)}
+#ab .info{width:230px;min-width:0}
+#ab .info b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ab .info span{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+#ab .ctl{display:flex;gap:6px;align-items:center}
+#ab .ctl button{background:none;border:0;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--text)}
+#ab .ctl button:hover{background:#262c3b}
+#ab .ctl button.pp{background:var(--pc,var(--c-audiobooks));color:#0b0d12;width:42px;height:42px}
+#ab .ctl svg{width:20px;height:20px}
+#ab .seek{flex:1;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+#ab input[type=range]{flex:1;accent-color:var(--pc,var(--c-audiobooks))}
+#ab select{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:4px 6px;font-size:12px}
+
+/* ---------- games landing ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px}
+.tile{position:relative;aspect-ratio:16/10;border-radius:16px;overflow:hidden;border:0;padding:0;text-align:left;background:linear-gradient(140deg,color-mix(in srgb,var(--tc) 55%,#141822),#0e1118 85%);box-shadow:0 14px 34px -20px #000;transition:transform .18s,box-shadow .18s;color:#fff}
+.tile:hover,.tile:focus{transform:translateY(-4px);box-shadow:0 0 0 3px var(--tc),0 22px 44px -18px #000;outline:none}
+.tile .mosaic{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;opacity:.55;transform:rotate(-8deg) scale(1.35) translate(8%,-6%)}
+.tile .mosaic img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:6px;display:block}
+.tile::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,color-mix(in srgb,var(--tc) 35%,#0b0d12) 0%,rgba(11,13,18,.55) 45%,rgba(11,13,18,.1) 100%)}
+.tile .glyph{position:absolute;right:-10px;top:-14px;width:150px;height:150px;opacity:.13;color:#fff}
+.tile .lbl{position:absolute;left:18px;right:18px;bottom:16px;z-index:2}
+.tile .lbl b{display:block;font-family:"Segoe UI Variable Display","Segoe UI",system-ui;font-size:23px;letter-spacing:-.2px;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.tile .lbl span{display:block;font-size:12.5px;color:#d5dae6;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .cnt{position:absolute;right:14px;top:14px;z-index:2;background:rgba(10,12,18,.75);backdrop-filter:blur(6px);border-radius:99px;padding:4px 11px;font-size:12.5px;font-weight:700}
+.tile.sm{aspect-ratio:16/9}
+.tile{cursor:pointer}
+.tiles.sq{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.tiles.sq .tile{aspect-ratio:1}
+.tiles.sq .tile .mosaic{grid-template-columns:repeat(3,1fr)}
+.tile .tart{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;transform:scale(1.1) translateY(-4%);transition:transform .25s}
+.tile:hover .tart,.tile:focus .tart{transform:scale(1.15) translateY(-4%)}
+.tile.retro .tart{transform:scale(1.32) translateY(-7%)}
+.tile.retro:hover .tart,.tile.retro:focus .tart{transform:scale(1.38) translateY(-7%)}
+.tile.hasart .lbl{left:16px;bottom:12px}
+.tile.hasart .lbl b{font-size:17px}
+.tile.hasart .lbl span{font-size:11.5px;color:#aeb5c4}
+.tile.hasart::after{background:linear-gradient(0deg,rgba(8,10,14,.9) 0%,rgba(8,10,14,.35) 22%,rgba(8,10,14,0) 40%);z-index:1}
+.tile.hasart .glyph{display:none}
+.tile .cnt{z-index:3}
+#tmenu{position:fixed;z-index:70;display:none;flex-direction:column;min-width:200px;background:#1b2030;border:1px solid var(--line);border-radius:10px;padding:5px;box-shadow:0 18px 40px -14px #000}
+#tmenu.on{display:flex}
+#tmenu button{background:none;border:0;text-align:left;padding:9px 12px;border-radius:7px;font-size:13.5px}
+#tmenu button:hover,#tmenu button:focus{background:#262c3b;outline:none}
+.crumb{display:flex;align-items:center;gap:12px;margin:14px 0 4px}
+.crumb .back{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;font-size:18px}
+.crumb .back:hover{background:var(--panel2)}
+.crumb h1.cat{margin:0}
+.crumb .dotc{width:14px;height:14px;border-radius:4px;background:var(--tc)}
+.sectlabel{margin:30px 0 14px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim)}
+/* ---------- controller / couch mode ---------- */
+body.navmode *:focus{outline:none}
+body.navmode :is(button,select,input,label.tog,a,.frow):focus{outline:3px solid var(--fc,#fff);outline-offset:2px;border-radius:10px}
+body.navmode .card:focus .art{transform:translateY(-4px) scale(1.04);box-shadow:0 0 0 3px #fff,0 0 0 6px var(--cc,var(--accent)),0 22px 50px -14px #000}
+body.navmode .card:focus .t{color:#fff}
+body.navmode .nav button:focus{background:#1d2333;color:var(--text);outline:none;box-shadow:inset 0 0 0 2px var(--cc)}
+body.couch.navmode{cursor:none}
+#hints{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:40;display:none;gap:18px;align-items:center;background:rgba(14,17,24,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:8px 20px;font-size:13px;color:var(--dim);white-space:nowrap}
+body.couch #hints{display:flex}
+body.couch.abon #hints{bottom:96px}
+#hints b{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;font-size:11.5px;font-weight:800;color:#0b0d12;margin-right:6px;background:#cfd5e2}
+#hints b.a{background:#3ecf8e}#hints b.b{background:#ff6b6b}#hints b.x{background:#4aa8ff}#hints b.y{background:#f5b642}
+body.couch #view{padding-bottom:150px}
+#osk{position:fixed;inset:0;z-index:60;background:rgba(5,6,9,.72);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;padding-bottom:70px}
+#osk.on{display:flex}
+#osk .pad{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 30px 70px -20px #000}
+#osk .val{font-size:22px;padding:10px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;min-height:50px}
+#osk .val::after{content:"▏";color:var(--accent);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+#osk .rows{display:flex;flex-direction:column;gap:7px}
+#osk .r{display:flex;gap:7px;justify-content:center}
+#osk .k{width:52px;height:50px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:18px;font-weight:600;text-transform:uppercase}
+#osk .k.w{width:150px;font-size:14px;text-transform:none}
+#osk .k:focus{background:var(--accent);color:#0b0d12;outline:none}
+#toasts{position:fixed;right:22px;bottom:100px;z-index:50;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.toast{background:#1f2533;border:1px solid var(--line);border-left:3px solid var(--accent);padding:11px 16px;border-radius:10px;font-size:13.5px;max-width:420px;box-shadow:0 14px 30px -14px #000;animation:tin .2s ease}
+.toast.bad{border-left-color:var(--bad)}.toast.ok{border-left-color:var(--ok)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="brand"><div class="logo"></div>OmniLauncher</div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="side-sep"></div>
+      <nav class="nav" id="nav2"></nav>
+      <button class="btn small" id="updBtn" style="display:none;margin:8px 12px 0;--cc:var(--ok)"></button>
+      <div id="scanStatus"></div>
+    </div>
+  </aside>
+  <main id="main">
+    <div id="top">
+      <label id="search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" placeholder="Search movies, shows, music videos, books, audiobooks, games…" autocomplete="off"><kbd>/</kbd></label>
+    </div>
+    <div id="view"></div>
+    <div id="detail"><div class="sheet" id="sheet"></div></div>
+    <div id="ab">
+      <img id="abImg" alt="">
+      <div class="info"><b id="abTitle"></b><span id="abSub"></span></div>
+      <div class="ctl">
+        <button id="abPrev" title="Previous track"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM9.5 12 18 6v12z"/></svg></button>
+        <button id="abBack" title="Back 30s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+        <button id="abPlay" class="pp" title="Play/Pause"></button>
+        <button id="abFwd" title="Forward 30s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+        <button id="abShuf" title="Shuffle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
+        <button id="abNext" title="Next track"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg></button>
+      </div>
+      <div class="seek"><span id="abCur">0:00</span><input type="range" id="abSeek" min="0" max="1000" value="0"><span id="abDur">0:00</span></div>
+      <select id="abRate" title="Speed"><option>0.8</option><option selected>1</option><option>1.15</option><option>1.25</option><option>1.5</option><option>1.75</option><option>2</option></select>
+      <button class="btn small ghost" id="abClose" title="Close">✕</button>
+      <audio id="abAudio" preload="metadata"></audio>
+    </div>
+  </main>
+</div>
+<div id="toasts"></div>
+<div id="tmenu"></div>
+<div id="hints"><span><b class="a">A</b>Select</span><span><b class="b">B</b>Back</span><span><b class="x">X</b>Play</span><span><b class="y">Y</b>Search</span><span><b>LB</b><b>RB</b>Category</span><span><b>LT</b><b>RT</b>Scroll</span><span><b>☰</b>Exit couch mode</span></div>
+<div id="osk"><div class="pad"><div class="val" id="oskVal"></div><div class="rows" id="oskRows"></div><div class="note" style="margin-top:12px;text-align:center">A type · X delete · Y space · B done</div></div></div>
+
+<script>
+/* ============================== constants ============================== */
+const CATS = [
+  { id: 'movies', label: 'Movies', shape: '', icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5M16 4v5"/>' },
+  { id: 'tv', label: 'TV Shows', shape: '', icon: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="m8 2 4 4 4-4"/>' },
+  { id: 'music', label: 'Music', shape: 'square', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3a9 9 0 0 1 9 9"/>' },
+  { id: 'musicvideos', label: 'Music Videos', shape: 'wide', icon: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>' },
+  { id: 'books', label: 'Books', shape: '', icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>' },
+  { id: 'audiobooks', label: 'Audiobooks', shape: 'square', icon: '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><rect x="2" y="15" width="5" height="7" rx="2"/><rect x="17" y="15" width="5" height="7" rx="2"/>' },
+  { id: 'games', label: 'Games', shape: '', icon: '<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r="1"/><circle cx="18" cy="13.5" r="1"/>' },
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+const ICON = {
+  home: '<path d="m3 11 9-8 9 8"/><path d="M5 9.5V21h14V9.5"/>',
+  setup: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  scan: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  play: '<path d="M7 4v16l13-8z" fill="currentColor" stroke="none"/>',
+  pause: '<path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor" stroke="none"/>',
+  cloud: '<path d="M17.5 19H7a5 5 0 1 1 1.2-9.9A6 6 0 0 1 19.5 11 4 4 0 0 1 17.5 19z"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  dl: '<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',
+  book: '<path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/>',
+};
+const svg = (p, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const REGIONS = ['US', 'CA', 'GB', 'IE', 'AU', 'NZ', 'DE', 'FR', 'ES', 'IT', 'NL', 'SE', 'NO', 'DK', 'FI', 'BR', 'MX', 'JP', 'IN'];
+
+/* ============================== state ============================== */
+let cfg, lib, ust, catalog;
+const ui = { view: 'home', filter: {}, sort: {}, q: '', setupTab: 'general', draft: null, scanning: false };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fileUrl = p => 'file:///' + String(p).replace(/\\/g, '/').split('/').map((seg, i) => i === 0 && /^[a-z]:$/i.test(seg) ? seg : encodeURIComponent(seg)).join('/');
+const fmtTime = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
+const fmtSize = b => !b ? '' : b > 1e9 ? (b / 1e9).toFixed(1) + ' GB' : (b / 1e6).toFixed(0) + ' MB';
+function toast(msg, kind = '') { const t = document.createElement('div'); t.className = 'toast ' + kind; t.textContent = msg; $('#toasts').appendChild(t); setTimeout(() => t.remove(), 4800); }
+
+/* ============================== services ============================== */
+function svcDefs(cat) { return cat === 'music' ? catalog.audio : cat === 'musicvideos' ? catalog.music : (cat === 'movies' || cat === 'tv') ? catalog.video : []; }
+function enabledServices(cat) {
+  const c = cfg.categories[cat]; if (!c || !c.services) return [];
+  const defs = svcDefs(cat);
+  return c.services.map(s => s.custom ? s : { ...(defs.find(d => d.id === s.id) || {}), ...s }).filter(s => s.name);
+}
+function svcHome(s) { return s.base || s.url; }
+function svcSearch(s, q) {
+  if (!s.search || (s.needsBase && !s.base)) return svcHome(s);
+  return s.search.replace('{base}', (s.base || '').replace(/\/$/, '')).replace('{q}', encodeURIComponent(q));
+}
+function svcMatchesProvider(s, p) {
+  return (s.providers || []).some(x => typeof x === 'number' ? x === p.id : p.name.toLowerCase().includes(x));
+}
+function svcButton(s, url, big) {
+  const initial = esc((s.name || '?')[0]);
+  return `<button class="svc ${big ? 'big' : ''}" style="--sc:${esc(s.color || '#888')}" data-url="${esc(url)}"><span class="dot">${initial}</span>${esc(s.name)}</button>`;
+}
+
+/* ============================== rendering helpers ============================== */
+function itemsOf(cat) { return (lib && lib[cat]) || []; }
+function subtitle(it) {
+  if (it.cat === 'movies') return [it.year, it.genres && it.genres[0]].filter(Boolean).join(' · ');
+  if (it.cat === 'tv') { const s = new Set(it.episodes.map(e => e.season)); return [it.year, s.size + (s.size === 1 ? ' season' : ' seasons') + ' · ' + it.episodes.length + ' ep'].filter(Boolean).join(' · '); }
+  if (it.cat === 'musicvideos') return it.artist;
+  if (it.cat === 'music') return [it.artist, it.year].filter(Boolean).join(' · ');
+  if (it.cat === 'books') return [it.author, it.format].filter(Boolean).join(' · ');
+  if (it.cat === 'audiobooks') return [it.author, it.files.length > 1 ? it.files.length + ' tracks' : null].filter(Boolean).join(' · ');
+  if (it.cat === 'games') return it.sourceLabel + (it.gamepass && it.gamepass.cloud ? ' · Cloud' : '');
+  return '';
+}
+function badges(it) {
+  const b = [];
+  if (it.cat === 'games') {
+    if (it.source === 'gamepass' || it.gamepass) b.push(`<span class="badge gp">Game Pass</span>`);
+    if (it.gamepass && it.gamepass.cloud) b.push(`<span class="badge cloud">Cloud</span>`);
+    if (it.source === 'psplus') b.push(`<span class="badge ps">PS Plus</span>`);
+    if (it.source === 'torbox') b.push(`<span class="badge tb">TorBox</span>`);
+    if (it.installed && !['gamepass'].includes(it.source)) b.push(`<span class="badge">${esc(it.sourceLabel)}</span>`);
+  } else {
+    if ((it.sources || []).includes('torbox')) b.push(`<span class="badge tb">TorBox</span>`);
+    if (it.cat === 'books' && it.format) b.push(`<span class="badge">${esc(it.format)}</span>`);
+  }
+  return b.join('');
+}
+function artHtml(it, cls = '') {
+  const src = it.poster;
+  const ph = `<div class="ph" ${src ? 'style="display:none"' : ''}><b>${esc(it.title)}</b><span>${esc(subtitle(it))}</span></div>`;
+  if (!src) return ph;
+  const fb = it.posterFallback ? ` data-fb="${esc(it.posterFallback)}"` : '';
+  return `<img loading="lazy" class="${it.posterIsLogo ? 'logo' : ''} ${cls}" src="${esc(src)}"${fb} alt="">${ph}`;
+}
+function card(it) {
+  const cc = `var(--c-${it.cat})`;
+  const pr = ust.progress[it.id];
+  const prog = pr && pr.pct ? `<div class="prog"><i style="width:${Math.min(100, pr.pct * 100)}%"></i></div>` : '';
+  return `<div class="card" tabindex="0" data-id="${esc(it.id)}" data-cat="${it.cat}" style="--cc:${cc}">
+    <div class="art">${artHtml(it)}<div class="badges">${badges(it)}</div>${prog}</div>
+    <div class="t">${esc(it.title)}</div><div class="m">${esc(subtitle(it)) || '&nbsp;'}</div></div>`;
+}
+function wireImages(root) {
+  root.querySelectorAll('img').forEach(img => {
+    const fail = () => {
+      if (img.dataset.fb && img.src !== img.dataset.fb) { img.src = img.dataset.fb; img.dataset.fb = ''; return; }
+      img.style.display = 'none'; const ph = img.nextElementSibling; if (ph && ph.classList.contains('ph')) ph.style.display = 'flex';
+    };
+    img.addEventListener('error', fail);
+    if (img.complete && img.getAttribute('src') && img.naturalWidth === 0) fail(); // failed before we attached
+  });
+}
+function wireCards(root) {
+  root.querySelectorAll('.card').forEach(c => {
+    const open = () => openDetail(c.dataset.cat, c.dataset.id);
+    c.addEventListener('click', open);
+    c.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
+  });
+  root.querySelectorAll('[data-url]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); window.api.openExternal(b.dataset.url); }));
+  wireImages(root);
+}
+
+/* ============================== nav ============================== */
+function renderNav() {
+  const btn = (id, label, icon, cc, n) => `<button data-v="${id}" class="${ui.view === id ? 'on' : ''}" style="--cc:var(--c-${cc})">${svg(icon)}<span>${label}</span>${n != null ? `<span class="n">${n}</span>` : ''}</button>`;
+  $('#nav').innerHTML = btn('home', 'Home', ICON.home, 'home') +
+    CATS.filter(c => cfg.categories[c.id].enabled).map(c => btn(c.id, c.label, c.icon, c.id, itemsOf(c.id).length || null)).join('');
+  $('#nav2').innerHTML = btn('setup', 'Library Setup', ICON.setup, 'setup') +
+    `<button data-act="scan" style="--cc:var(--accent)">${svg(ICON.scan)}<span>${ui.scanning ? 'Scanning…' : 'Rescan library'}</span></button>`;
+  document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => go(b.dataset.v));
+  document.querySelector('[data-act=scan]').onclick = () => rescan();
+}
+function go(v) { if (v !== ui.view || v === 'games') { ui.gamesView = null; ui.gLimit = 0; } ui.view = v; ui.q = ''; $('#q').value = ''; closeDetail(); render(); $('#view').scrollTop = 0; }
+
+/* ============================== views ============================== */
+function render() {
+  renderNav();
+  if (ui.q) return renderSearch();
+  if (ui.view === 'home') return renderHome();
+  if (ui.view === 'setup') return renderSetup();
+  return renderCategory(ui.view);
+}
+
+function renderHome() {
+  const all = CATS.filter(c => cfg.categories[c.id].enabled).flatMap(c => itemsOf(c.id));
+  const total = all.length;
+  if (!total) {
+    $('#view').innerHTML = `<h1 class="cat">Welcome, let's build your library</h1>
+      <div class="empty"><b>Nothing here yet</b>Open <a href="#" id="toSetup">Library Setup</a> to add folders, streaming services, TorBox and game platforms, then hit <i>Save &amp; Scan</i>.</div>`;
+    $('#toSetup').onclick = e => { e.preventDefault(); go('setup'); };
+    return;
+  }
+  const withBd = all.filter(i => i.backdrop && (i.cat !== 'games' || i.installed));
+  const pick = withBd.length ? withBd[Math.floor((Date.now() / 3.6e6) % withBd.length)] : null;
+  let html = '';
+  if (pick) {
+    html += `<div class="hero" style="--cc:var(--c-${pick.cat})"><img src="${esc(pick.backdrop)}" alt=""><div class="in">
+      <div class="kick">${esc(CAT[pick.cat].label)}${pick.year ? ' · ' + pick.year : ''}</div><h2>${esc(pick.title)}</h2>
+      <p>${esc(pick.overview || '')}</p>
+      <div class="actions"><button class="btn primary" id="heroGo">${svg(ICON.play, 16)} ${pick.cat === 'games' ? 'Play' : 'Open'}</button></div></div></div>`;
+  }
+  const byId = new Map(all.map(i => [i.id, i]));
+  const recent = Object.entries(ust.played).sort((a, b) => b[1] - a[1]).map(([id]) => byId.get(id)).filter(Boolean).slice(0, 20);
+  if (recent.length) html += rowHtml('Jump back in', recent, null);
+  for (const c of CATS) {
+    if (!cfg.categories[c.id].enabled) continue;
+    let items = itemsOf(c.id);
+    if (c.id === 'games') items = items.filter(g => g.installed);
+    items = items.slice().sort((a, b) => (b.added || b.lastPlayedExternal || 0) - (a.added || a.lastPlayedExternal || 0)).slice(0, 24);
+    if (items.length) html += rowHtml(c.id === 'games' ? 'Your games' : 'Recently added · ' + c.label, items, c.id, c.shape);
+  }
+  $('#view').innerHTML = html;
+  if (pick) $('#heroGo').onclick = () => openDetail(pick.cat, pick.id);
+  document.querySelectorAll('[data-more]').forEach(b => b.onclick = () => go(b.dataset.more));
+  wireCards($('#view'));
+}
+function rowHtml(title, items, cat, shape = '') {
+  return `<div class="rowhead"><h3>${esc(title)}</h3>${cat ? `<button data-more="${cat}">See all ›</button>` : ''}</div>
+    <div class="row ${shape}">${items.map(card).join('')}</div>`;
+}
+
+const FILTERS = {
+  default: [['all', 'All'], ['local', 'Local'], ['torbox', 'TorBox']],
+  games: [['all', 'All'], ['installed', 'Installed'], ['retro', 'Retro'], ['gamepass', 'Game Pass'], ['cloud', 'Cloud'], ['psplus', 'PS Plus'], ['torbox', 'TorBox']],
+};
+const SORTS = { title: 'Title', artist: 'Artist / author', added: 'Recently added', year: 'Year', rating: 'Rating' };
+
+function filtered(cat) {
+  const f = ui.filter[cat] || 'all';
+  let items = itemsOf(cat);
+  if (cat === 'games') {
+    items = items.filter(g => f === 'all' ? true : f === 'installed' ? g.installed : f === 'retro' ? g.source === 'emulator' : f === 'gamepass' ? (g.source === 'gamepass' || g.gamepass) : f === 'cloud' ? (g.gamepass && g.gamepass.cloud) : g.source === f);
+  } else if (f !== 'all') items = items.filter(i => (i.sources || []).includes(f));
+  const genre = ui.filter[cat + ':genre'];
+  if (genre) items = items.filter(i => (i.genres || []).includes(genre));
+  const s = ui.sort[cat] || (cat === 'games' ? 'title' : cat === 'music' ? 'artist' : 'added');
+  const key = { artist: i => ((i.artist || i.author || '~') + ' ' + (i.year || '') + ' ' + i.title).toLowerCase().replace(/^the /, ''), title: i => (i.title || '').toLowerCase().replace(/^(the|a|an) /, ''), added: i => -(i.added || i.lastPlayedExternal || 0), year: i => -(i.year || 0), rating: i => -(i.rating || 0) }[s];
+  return items.slice().sort((a, b) => { const x = key(a), y = key(b); return x < y ? -1 : x > y ? 1 : 0; });
+}
+
+function renderCategory(cat) {
+  if (cat === 'games') return renderGames();
+  const c = CAT[cat], conf = cfg.categories[cat];
+  const items = filtered(cat);
+  const total = itemsOf(cat).length;
+  let html = `<div style="--cc:var(--c-${cat})"><h1 class="cat">${c.label}</h1><div class="sub">${total} in library${lib.updated ? ' · updated ' + new Date(lib.updated).toLocaleString() : ''}</div>`;
+
+  const svcs = enabledServices(cat);
+  if (svcs.length) html += `<div class="services">${svcs.map(s => svcButton(s, svcHome(s))).join('')}</div>`;
+  if (cat === 'games') {
+    const hubs = [];
+    if (conf.gamepass.enabled) {
+      hubs.push(svcButton({ name: 'Xbox app', color: '#107C10' }, 'msxbox://'));
+      if (conf.gamepass.catalogs.cloud) hubs.push(svcButton({ name: 'Xbox Cloud Gaming', color: '#9BF00B' }, 'https://www.xbox.com/play'));
+    }
+    if (conf.psplus.enabled) hubs.push(`<button class="svc" style="--sc:#2E6DB4" id="psHub"><span class="dot">P</span>PlayStation Plus</button>`);
+    if (conf.scanners.steam) hubs.push(svcButton({ name: 'Steam', color: '#66C0F4' }, 'steam://open/games'));
+    if (conf.scanners.epic) hubs.push(svcButton({ name: 'Epic Games', color: '#DDDDDD' }, 'com.epicgames.launcher://'));
+    if (conf.emulation && conf.emulation.enabled && conf.emulation.retroarchPath) hubs.push(`<button class="svc" style="--sc:#8D9BFF" id="raHub"><span class="dot">R</span>RetroArch</button>`);
+    if (hubs.length) html += `<div class="services">${hubs.join('')}</div>`;
+  }
+
+  const fl = FILTERS[cat === 'games' ? 'games' : 'default'];
+  const curF = ui.filter[cat] || 'all';
+  const genres = [...new Set(itemsOf(cat).flatMap(i => i.genres || []))].sort();
+  html += `<div class="toolbar">${fl.map(([k, l]) => `<button class="chip ${curF === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('')}
+    <span class="sp"></span>
+    ${genres.length ? `<select class="sel" id="genreSel"><option value="">${cat === 'games' ? 'All systems' : 'All genres'}</option>${genres.map(g => `<option ${ui.filter[cat + ':genre'] === g ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select>` : ''}
+    <select class="sel" id="sortSel">${Object.entries(SORTS).map(([k, l]) => `<option value="${k}" ${(ui.sort[cat] || (cat === 'games' ? 'title' : cat === 'music' ? 'artist' : 'added')) === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
+
+  if (!total) {
+    const hint = cat === 'games' ? 'Turn on PC scanning, Game Pass or PS Plus, or add game folders' : 'Add a folder' + (['movies', 'tv', 'musicvideos'].includes(cat) ? ', streaming services' : '') + ' or link TorBox';
+    html += `<div class="empty"><b>No ${c.label.toLowerCase()} yet</b>${hint} in <a href="#" id="toSetup">Library Setup → ${c.label}</a>.</div>`;
+  } else if (!items.length) html += `<div class="empty">Nothing matches this filter.</div>`;
+  else html += `<div class="grid ${c.shape}">${items.map(card).join('')}</div>`;
+  html += '</div>';
+  $('#view').innerHTML = html;
+  document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { ui.filter[cat] = b.dataset.f; renderCategory(cat); });
+  $('#sortSel').onchange = e => { ui.sort[cat] = e.target.value; renderCategory(cat); };
+  if ($('#genreSel')) $('#genreSel').onchange = e => { ui.filter[cat + ':genre'] = e.target.value; renderCategory(cat); };
+  if ($('#toSetup')) $('#toSetup').onclick = e => { e.preventDefault(); ui.setupTab = cat; go('setup'); };
+  if ($('#psHub')) $('#psHub').onclick = () => launchPs();
+  if ($('#raHub')) $('#raHub').onclick = () => doPlay({ action: 'game', launch: { type: 'exe', target: conf.emulation.retroarchPath } });
+  wireCards($('#view'));
+}
+
+/* ---------- Games: landing tiles + collections ---------- */
+const GLYPH = {
+  pc: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  pad: '<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r="1"/><circle cx="18" cy="13.5" r="1"/>',
+  cloud: '<path d="M17.5 19H7a5 5 0 1 1 1.2-9.9A6 6 0 0 1 19.5 11 4 4 0 0 1 17.5 19z"/>',
+  dl: '<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',
+  cart: '<path d="M5 3h14v14l-3 4H8l-3-4z"/><path d="M8 7h8M8 10h8"/>',
+  handheld: '<rect x="6" y="2" width="12" height="20" rx="2"/><rect x="8" y="4" width="8" height="7" rx="1"/><circle cx="15" cy="16" r="1"/><path d="M9 15v2M8 16h2"/>',
+  disc: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>',
+  stick: '<circle cx="12" cy="6" r="3"/><path d="M12 9v8M6 21h12l-1-4H7z"/>',
+};
+const SYS_GLYPH = { gb: 'handheld', gbc: 'handheld', gba: 'handheld', nds: 'handheld', gg: 'handheld', psp: 'handheld', psx: 'disc', ps2: 'disc', segacd: 'disc', saturn: 'disc', dreamcast: 'disc', gc: 'disc', wii: 'disc', arcade: 'stick', atari2600: 'stick' };
+const PC_SRC = new Set(['steam', 'epic', 'gog', 'xbox', 'ubisoft', 'folder', 'manual']);
+const SRC_LABEL = { steam: 'Steam', epic: 'Epic', gog: 'GOG', xbox: 'Xbox app', ubisoft: 'Ubisoft', folder: 'Folders', manual: 'Manual' };
+function gameCollections() {
+  const games = itemsOf('games');
+  const cols = [];
+  const pc = games.filter(g => PC_SRC.has(g.source));
+  if (pc.length) {
+    const by = {}; pc.forEach(g => by[g.source] = (by[g.source] || 0) + 1);
+    cols.push({ key: 'pc', group: 'pc', name: 'PC Library', sub: Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${SRC_LABEL[k]} ${n}`).join(' · '), color: '#4aa8ff', glyph: 'pc', items: pc });
+  }
+  const gp = games.filter(g => g.source === 'gamepass' || g.gamepass);
+  if (gp.length) cols.push({ key: 'gamepass', group: 'pc', name: 'Xbox Game Pass', sub: `${gp.filter(g => g.installed).length} installed`, color: '#107C10', glyph: 'pad', items: gp });
+  const cloud = games.filter(g => g.gamepass && g.gamepass.cloud);
+  if (cloud.length) cols.push({ key: 'cloud', group: 'pc', name: 'Cloud Gaming', sub: 'Play instantly via Xbox Cloud', color: '#9BF00B', glyph: 'cloud', items: cloud });
+  const ps = games.filter(g => g.source === 'psplus');
+  if (ps.length || (cfg.categories.games.psplus && cfg.categories.games.psplus.enabled)) cols.push({ key: 'psplus', group: 'pc', name: 'PlayStation Plus', sub: 'Streams through the PS Plus app', color: '#2E6DB4', glyph: 'pad', items: ps });
+  const tb = games.filter(g => g.source === 'torbox');
+  if (tb.length) cols.push({ key: 'torbox', group: 'pc', name: 'TorBox', sub: 'Downloads ready to grab', color: '#3ecf8e', glyph: 'dl', items: tb });
+  const retro = games.filter(g => g.source === 'emulator');
+  const order = emuSys.map(s => s.id);
+  const bySys = {};
+  retro.forEach(g => (bySys[g.system] = bySys[g.system] || []).push(g));
+  for (const id of Object.keys(bySys).sort((a, b) => order.indexOf(a) - order.indexOf(b))) {
+    const sys = sysOf(id);
+    cols.push({ key: 'sys:' + id, group: 'retro', name: sys.full, short: sys.name, sub: (bySys[id][0] || {}).emulatorLabel || '', color: sys.color, glyph: SYS_GLYPH[id] || 'cart', items: bySys[id] });
+  }
+  return cols;
+}
+let BUNDLED_TILES = { pc: '../assets/tiles/pc.jpg', nes: '../assets/tiles/nes.jpg' };
+let tileArt = {};
+const tileKeyOf = k => String(k).replace(/^sys:/, '').replace(/[^a-z0-9_-]/gi, '');
+function tileArtFor(key) {
+  const k = tileKeyOf(key), o = tileArt[k];
+  if (o === 'none') return null;
+  return o || BUNDLED_TILES[k] || null;
+}
+function tileMenu(key, x, y) {
+  const k = tileKeyOf(key), m = $('#tmenu');
+  const hasOverride = tileArt[k] && tileArt[k] !== 'none', hasBundled = !!BUNDLED_TILES[k], isNone = tileArt[k] === 'none';
+  m.innerHTML = `<button data-tm="pick">Change image…</button>
+    ${hasOverride || isNone ? `<button data-tm="reset">${hasBundled ? 'Use default image' : 'Remove image'}</button>` : ''}
+    ${!isNone && (hasOverride || hasBundled) ? '<button data-tm="none">Use collage</button>' : ''}`;
+  m.style.left = Math.min(x, innerWidth - 220) + 'px'; m.style.top = Math.min(y, innerHeight - 140) + 'px';
+  m.classList.add('on');
+  m.querySelectorAll('button').forEach(b => b.onclick = async () => {
+    m.classList.remove('on');
+    if (b.dataset.tm === 'pick') tileArt = await window.api.tilesPick(key);
+    else tileArt = await window.api.tilesSet(key, b.dataset.tm === 'none' ? 'none' : null);
+    renderGames();
+    const t = document.querySelector(`[data-col="${key}"]`); if (t && nav.mode) focusEl(t);
+  });
+  if (nav.mode) focusEl(m.querySelector('button'));
+}
+document.addEventListener('mousedown', e => { if (!e.target.closest('#tmenu')) $('#tmenu').classList.remove('on'); });
+function mosaicFor(items, n = 8) {
+  const withArt = items.filter(g => g.poster && !g.posterIsLogo);
+  // stable "random" pick so tiles don't reshuffle on every render
+  const h = s => { let x = 0; for (const c of s) x = (x * 31 + c.charCodeAt(0)) | 0; return x; };
+  return withArt.slice().sort((a, b) => h(a.id) - h(b.id)).slice(0, n);
+}
+function tileHtml(c) {
+  const mos = mosaicFor(c.items);
+  const artUrl = tileArtFor(c.key);
+  return `<div class="tile ${artUrl ? 'hasart' : ''} ${c.group === 'retro' ? 'retro' : ''}" tabindex="0" role="button" aria-label="${esc(c.name)}" title="${esc(c.name)} · right-click to change image" data-col="${esc(c.key)}" style="--tc:${esc(c.color)}">
+    ${artUrl ? `<img class="tart" src="${esc(artUrl)}" alt="">` : ''}
+    ${!artUrl && mos.length ? `<div class="mosaic">${mos.map(g => `<img loading="lazy" src="${esc(g.poster)}" ${g.posterFallback ? `data-fb="${esc(g.posterFallback)}"` : ''} alt="">`).join('')}</div>` : ''}
+    <span class="glyph">${svg(GLYPH[c.glyph] || GLYPH.pad, 150)}</span>
+    <span class="cnt">${c.items.length.toLocaleString()}</span>
+    <span class="lbl"><b>${esc(artUrl && c.short ? c.short : c.name)}</b><span>${esc(c.sub || '')}</span></span></div>`;
+}
+function renderGames() {
+  const conf = cfg.categories.games;
+  const cols = gameCollections();
+  const col = ui.gamesView ? cols.find(c => c.key === ui.gamesView) : null;
+  if (ui.gamesView && !col) ui.gamesView = null;
+  const hubs = [];
+  if (conf.gamepass.enabled) hubs.push(svcButton({ name: 'Xbox app', color: '#107C10' }, 'msxbox://'));
+  if (conf.psplus.enabled) hubs.push(`<button class="svc" style="--sc:#2E6DB4" id="psHub"><span class="dot">P</span>PlayStation Plus</button>`);
+  if (conf.scanners.steam) hubs.push(svcButton({ name: 'Steam', color: '#66C0F4' }, 'steam://open/games'));
+  if (conf.scanners.epic) hubs.push(svcButton({ name: 'Epic Games', color: '#DDDDDD' }, 'com.epicgames.launcher://'));
+  if (conf.emulation && conf.emulation.enabled && conf.emulation.retroarchPath) hubs.push(`<button class="svc" style="--sc:#8D9BFF" id="raHub"><span class="dot">R</span>RetroArch</button>`);
+  let html = '';
+  if (!col) {
+    const total = itemsOf('games').length;
+    html += `<div style="--cc:var(--c-games)"><h1 class="cat">Games</h1><div class="sub">${total.toLocaleString()} games across ${cols.length} collection${cols.length === 1 ? '' : 's'}</div>`;
+    if (hubs.length) html += `<div class="services">${hubs.join('')}</div>`;
+    const byId = new Map(itemsOf('games').map(g => [g.id, g]));
+    const recent = Object.entries(ust.played).sort((a, b) => b[1] - a[1]).map(([id]) => byId.get(id)).filter(Boolean).slice(0, 16);
+    if (recent.length) html += `<div class="sectlabel">Jump back in</div><div class="row">${recent.map(card).join('')}</div>`;
+    const pcCols = cols.filter(c => c.group === 'pc'), retro = cols.filter(c => c.group === 'retro');
+    const sq = () => '';
+    if (pcCols.length) html += `<div class="sectlabel">PC &amp; streaming</div><div class="tiles ${sq(pcCols)}">${pcCols.map(tileHtml).join('')}</div>`;
+    if (retro.length) html += `<div class="sectlabel">Retro systems</div><div class="tiles ${sq(retro)}">${retro.map(tileHtml).join('')}</div>`;
+    if (!cols.length) html += `<div class="empty" style="margin-top:20px"><b>No games yet</b>Turn on PC scanning, Game Pass, PS Plus or emulation in <a href="#" id="toSetup">Library Setup → Games</a>.</div>`;
+    html += '</div>';
+    $('#view').innerHTML = html;
+    document.querySelectorAll('[data-col]').forEach(b => b.oncontextmenu = e => { e.preventDefault(); tileMenu(b.dataset.col, e.clientX, e.clientY); });
+    document.querySelectorAll('[data-col]').forEach(b => b.onclick = () => { ui.gamesView = b.dataset.col; ui.gq = ''; renderGames(); $('#view').scrollTop = 0; if (nav.mode) setTimeout(() => focusEl($('#view .card') || $('#gBack')), 30); });
+  } else {
+    const subs = col.key === 'pc' ? [['all', 'All'], ...[...new Set(col.items.map(g => g.source))].map(s => [s, SRC_LABEL[s] || s])] : [];
+    const curSub = ui.filter['games:' + col.key] || 'all';
+    let items = col.items.filter(g => curSub === 'all' || g.source === curSub);
+    if (ui.gq) { const q = ui.gq.toLowerCase(); items = items.filter(g => (g.title || '').toLowerCase().includes(q)); }
+    const genre = ui.filter['games:' + col.key + ':genre'];
+    if (genre) items = items.filter(g => (g.genres || []).includes(genre));
+    const sk = ui.sort['games:' + col.key] || 'title';
+    const keyf = { title: g => (g.title || '').toLowerCase().replace(/^(the|a|an) /, ''), added: g => -(g.added || g.lastPlayedExternal || 0), year: g => -(g.year || 0), rating: g => -(g.rating || 0), artist: g => (g.publisher || '~').toLowerCase() }[sk] || (g => g.title);
+    items = items.slice().sort((a, b) => { const x = keyf(a), y = keyf(b); return x < y ? -1 : x > y ? 1 : 0; });
+    const genres = col.group === 'retro' ? [] : [...new Set(col.items.flatMap(g => g.genres || []))].sort();
+    html += `<div style="--cc:var(--c-games);--tc:${esc(col.color)}"><div class="crumb"><button class="back" id="gBack" title="All collections">‹</button><span class="dotc"></span><h1 class="cat">${esc(col.name)}</h1></div>
+      <div class="sub">${col.items.length.toLocaleString()} games${col.sub ? ' · ' + esc(col.sub) : ''}</div>
+      <div class="toolbar">${subs.map(([k, l]) => `<button class="chip ${curSub === k ? 'on' : ''}" data-gsub="${k}">${esc(l)}</button>`).join('')}
+        <input class="inp" id="gq" style="max-width:260px" placeholder="Filter ${esc(col.short || col.name)}…" value="${esc(ui.gq || '')}">
+        <span class="sp"></span>
+        ${genres.length ? `<select class="sel" id="gGenre"><option value="">All genres</option>${genres.map(g => `<option ${genre === g ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select>` : ''}
+        <select class="sel" id="gSort">${[['title', 'Title'], ['added', 'Recently added'], ['year', 'Year']].map(([k, l]) => `<option value="${k}" ${sk === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      ${items.length ? `<div class="grid">${items.slice(0, ui.gLimit || 300).map(card).join('')}</div>${items.length > (ui.gLimit || 300) ? `<div style="text-align:center;margin:24px 0"><button class="btn" id="gMore">Show more (${(items.length - (ui.gLimit || 300)).toLocaleString()} left)</button></div>` : ''}` : `<div class="empty">${col.key === 'psplus' ? 'Add the PS Plus games you play in Library Setup → Games.' : 'Nothing matches.'}</div>`}</div>`;
+    $('#view').innerHTML = html;
+    $('#gBack').onclick = () => { ui.gamesView = null; ui.gLimit = 0; renderGames(); if (nav.mode) setTimeout(() => focusEl($(`[data-col="${col.key}"]`)), 30); };
+    document.querySelectorAll('[data-gsub]').forEach(b => b.onclick = () => { ui.filter['games:' + col.key] = b.dataset.gsub; renderGames(); });
+    let gqT; $('#gq').oninput = e => { clearTimeout(gqT); gqT = setTimeout(() => { ui.gq = e.target.value; const pos = e.target.selectionStart; renderGames(); const i = $('#gq'); i.focus(); i.setSelectionRange(pos, pos); }, 180); };
+    $('#gSort').onchange = e => { ui.sort['games:' + col.key] = e.target.value; renderGames(); };
+    if ($('#gGenre')) $('#gGenre').onchange = e => { ui.filter['games:' + col.key + ':genre'] = e.target.value; renderGames(); };
+    if ($('#gMore')) $('#gMore').onclick = () => { ui.gLimit = (ui.gLimit || 300) + 300; renderGames(); };
+  }
+  if ($('#toSetup')) $('#toSetup').onclick = e => { e.preventDefault(); ui.setupTab = 'games'; go('setup'); };
+  if ($('#psHub')) $('#psHub').onclick = () => launchPs();
+  if ($('#raHub')) $('#raHub').onclick = () => doPlay({ action: 'game', launch: { type: 'exe', target: conf.emulation.retroarchPath } });
+  wireCards($('#view'));
+}
+
+function renderSearch() {
+  const q = ui.q.toLowerCase();
+  let html = `<h1 class="cat">Results for “${esc(ui.q)}”</h1>`;
+  let any = false;
+  for (const c of CATS) {
+    if (!cfg.categories[c.id].enabled) continue;
+    const hits = itemsOf(c.id).filter(i => [i.title, i.artist, i.author, ...(c.id === 'music' ? i.files.map(f => f.title) : []), ...(i.genres || []), ...((i.meta && i.meta.cast) || [])].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 40);
+    if (!hits.length) continue;
+    any = true;
+    html += `<div class="rowhead"><h3>${c.label}</h3><span class="sub">${hits.length}</span></div><div class="grid ${c.shape}" style="--cc:var(--c-${c.id})">${hits.map(card).join('')}</div>`;
+  }
+  // streaming search shortcuts
+  const svcs = [...new Map([...enabledServices('movies'), ...enabledServices('tv'), ...enabledServices('music'), ...enabledServices('musicvideos')].map(s => [s.id, s])).values()];
+  if (svcs.length) html += `<div class="rowhead"><h3>Search your services</h3></div><div class="services">${svcs.map(s => svcButton(s, svcSearch(s, ui.q))).join('')}</div>`;
+  if (!any) html += `<div class="empty" style="margin-top:20px">Nothing in your library matches.</div>`;
+  $('#view').innerHTML = html;
+  wireCards($('#view'));
+}
+
+/* ============================== detail ============================== */
+function findItem(cat, id) { return itemsOf(cat).find(i => i.id === id); }
+function closeDetail() { $('#detail').classList.remove('on'); }
+
+async function openDetail(cat, id) {
+  const it = findItem(cat, id); if (!it) return;
+  const cc = `var(--c-${cat})`;
+  const shape = CAT[cat].shape;
+  const facts = [];
+  if (it.year) facts.push(it.year);
+  if (it.meta && it.meta.runtime) facts.push(it.meta.runtime + ' min');
+  if (it.rating) facts.push(`<span class="rate">★ ${it.rating}</span>`);
+  if (it.genres && it.genres.length && it.source !== 'emulator') facts.push(esc(it.genres.slice(0, 4).join(', ')));
+  if (it.region) facts.push(esc(it.region));
+  if (it.artist) facts.push(esc(it.artist));
+  if (it.author) facts.push('by ' + esc(it.author));
+  if (it.format) facts.push(esc(it.format));
+  if (it.cat === 'games') facts.push(esc(it.sourceLabel), it.publisher ? esc(it.publisher) : '');
+
+  let body = `<button class="x" id="dx">✕</button>
+    <div class="bd">${it.backdrop ? `<img src="${esc(it.backdrop)}" alt="">` : ''}</div>
+    <div class="dwrap" style="--cc:${cc}">
+      <div><div class="poster ${shape === 'square' ? 'sq' : shape === 'wide' ? 'wd' : ''}" style="position:relative">${artHtml(it)}</div></div>
+      <div>
+        <div class="dtitle">${esc(it.title)}</div>
+        <div class="facts">${facts.filter(Boolean).join('<span>·</span>')}</div>
+        ${it.meta && it.meta.tagline ? `<div class="note" style="margin-top:8px;font-style:italic">${esc(it.meta.tagline)}</div>` : ''}
+        ${it.overview ? `<p class="overview">${esc(it.overview)}</p>` : ''}
+        <div class="actions" id="dActions"></div>
+        <div id="dBody"></div>
+      </div></div>`;
+  $('#sheet').innerHTML = body;
+  $('#sheet').scrollTop = 0;
+  $('#detail').classList.add('on');
+  $('#dx').onclick = closeDetail;
+  wireImages($('#sheet'));
+
+  const A = $('#dActions'), B = $('#dBody');
+  if (cat === 'movies') detailMovie(it, A, B);
+  else if (cat === 'tv') detailTv(it, A, B);
+  else if (cat === 'musicvideos') detailMv(it, A, B);
+  else if (cat === 'music') detailMusic(it, A, B);
+  else if (cat === 'books') detailBook(it, A, B);
+  else if (cat === 'audiobooks') detailAudiobook(it, A, B);
+  else if (cat === 'games') detailGame(it, A, B);
+  $('#sheet').querySelectorAll('[data-url]').forEach(b => b.onclick = () => window.api.openExternal(b.dataset.url));
+}
+
+async function doPlay(req, it) {
+  if (req.launch && req.launch.type === 'romzip') toast('Unpacking ROM from the archive…');
+  const r = await window.api.play(req);
+  if (r && r.ok === false) toast(r.error || 'Could not open', 'bad');
+  else { if (r && r.note) toast(r.note); if (it) { ust = await window.api.markPlayed(it.id); } }
+}
+
+function fileRows(it, action, labelFor) {
+  return `<div class="filelist">${it.files.map((f, i) => `<div class="frow"><span class="src ${f.source === 'torbox' ? 'tb' : ''}">${f.source === 'torbox' ? 'TorBox' : 'Local'}</span>
+    <span class="nm" title="${esc(f.path || f.name)}">${esc(f.name)}</span><span class="sub">${fmtSize(f.size)}</span>
+    <button class="btn small" data-fi="${i}">${labelFor(f)}</button>
+    ${f.source === 'local' ? `<button class="btn small ghost" data-folder="${i}" title="Show in folder">${svg(ICON.folder, 15)}</button>` : ''}</div>`).join('')}</div>`;
+}
+function wireFileRows(root, it, action) {
+  root.querySelectorAll('[data-fi]').forEach(b => b.onclick = () => doPlay({ action, file: it.files[+b.dataset.fi], title: it.title }, it));
+  root.querySelectorAll('[data-folder]').forEach(b => b.onclick = () => window.api.play({ action: 'folder', path: it.files[+b.dataset.folder].path }));
+}
+
+function watchSection(it, cat) {
+  const svcs = enabledServices(cat);
+  const w = it.meta && it.meta.watch;
+  let html = '';
+  if (svcs.length) {
+    const avail = w ? svcs.filter(s => w.stream.some(p => svcMatchesProvider(s, p))) : [];
+    const others = svcs.filter(s => !avail.includes(s));
+    if (avail.length) html += `<div class="sect"><h4>Streaming on your services</h4><div class="services">${avail.map(s => svcButton(s, svcSearch(s, it.title), true)).join('')}</div></div>`;
+    if (others.length) html += `<div class="sect"><h4>${avail.length ? 'Search your other services' : 'Search your services'}</h4><div class="services">${others.map(s => svcButton(s, svcSearch(s, it.title))).join('')}</div></div>`;
+  }
+  if (w && (w.stream.some(p => p.logo) || w.rent.some(p => p.logo) || w.link)) {
+    const notMine = w.stream.filter(p => !svcs.some(s => svcMatchesProvider(s, p)));
+    html += `<div class="sect"><h4>Where else (${esc(cfg.region)})</h4><div class="provs">
+      ${notMine.map(p => p.logo ? `<img title="Stream: ${esc(p.name)}" src="${esc(p.logo)}">` : '').join('')}
+      ${w.rent.slice(0, 8).map(p => p.logo ? `<img style="opacity:.55" title="Rent/Buy: ${esc(p.name)}" src="${esc(p.logo)}">` : '').join('')}
+      ${w.link ? `<button class="btn small ghost" data-url="${esc(w.link)}">${svg(ICON.ext, 14)} All options</button>` : ''}</div>
+      <div class="note" style="margin-top:8px">Availability data from TMDB / JustWatch.</div></div>`;
+  }
+  return html;
+}
+
+function reclassifyHtml(it) {
+  const keys = [...new Set((it.files || it.episodes || []).filter(f => f.tb).map(f => f.tb.key))];
+  if (!keys.length) return '';
+  const opts = CATS.filter(c => c.id !== 'games' || true).map(c => `<option value="${c.id}" ${c.id === it.cat ? 'selected' : ''}>${c.label}</option>`).join('');
+  return `<div class="sect"><h4>TorBox</h4><div class="inline"><span class="note">Wrong category? Move this TorBox item to</span>
+    <select class="sel" id="reclass">${opts}</select></div></div>`;
+}
+function wireReclass(it) {
+  const s = $('#reclass'); if (!s) return;
+  s.onchange = async () => {
+    const keys = [...new Set((it.files || it.episodes || []).filter(f => f.tb).map(f => f.tb.key))];
+    toast('Re-filing TorBox item…');
+    for (const k of keys) await window.api.torboxOverride(k, s.value);
+    lib = await window.api.getLibrary(); closeDetail(); render(); toast('Moved to ' + CAT[s.value].label, 'ok');
+  };
+}
+
+function detailMovie(it, A, B) {
+  const local = it.files.find(f => f.source === 'local'), tb = it.files.find(f => f.source === 'torbox');
+  if (local) A.innerHTML += `<button class="btn primary" id="pLocal">${svg(ICON.play, 16)} Play</button>`;
+  if (tb) A.innerHTML += `<button class="btn ${local ? '' : 'primary'}" id="pTb">${svg(ICON.play, 16)} Stream from TorBox</button>`;
+  if (local) $('#pLocal').onclick = () => doPlay({ action: 'video', file: local, title: it.title }, it);
+  if (tb) $('#pTb').onclick = () => doPlay({ action: 'video', file: tb, title: it.title }, it);
+  let html = watchSection(it, 'movies');
+  if (it.meta && it.meta.cast && it.meta.cast.length) html += `<div class="sect"><h4>Cast</h4><div class="note">${esc(it.meta.cast.join(', '))}</div></div>`;
+  if (it.files.length) html += `<div class="sect"><h4>Files</h4>${fileRows(it, 'video', () => 'Play')}</div>`;
+  html += reclassifyHtml(it);
+  B.innerHTML = html; wireFileRows(B, it, 'video'); wireReclass(it);
+}
+
+async function detailTv(it, A, B) {
+  const metaSeasons = (it.meta && it.meta.seasons || []).filter(s => s.n > 0 || it.episodes.some(e => e.season === 0));
+  const have = [...new Set(it.episodes.map(e => e.season))];
+  const seasons = [...new Set([...metaSeasons.map(s => s.n), ...have])].sort((a, b) => (a === 0) - (b === 0) || a - b);
+  let cur = have.length ? Math.min(...have.filter(n => n > 0).concat(have)) : seasons[0];
+  const next = it.episodes.find(e => !ust.progress[it.id + ':' + e.season + ':' + e.episode]) || it.episodes[0];
+  if (next) {
+    A.innerHTML = `<button class="btn primary" id="pNext">${svg(ICON.play, 16)} Play S${String(next.season).padStart(2, '0')}E${String(next.episode).padStart(2, '0')}</button>`;
+    $('#pNext').onclick = () => playEp(it, next);
+  }
+  B.innerHTML = `<div class="sect"><h4>Episodes</h4><div class="seasons" id="seasons"></div><div class="eps" id="eps"></div></div>` + watchSection(it, 'tv') + reclassifyHtml(it);
+  wireReclass(it);
+  B.querySelectorAll('[data-url]').forEach(b => b.onclick = () => window.api.openExternal(b.dataset.url));
+  const drawSeasons = () => {
+    $('#seasons').innerHTML = seasons.map(n => `<button class="chip ${n === cur ? 'on' : ''}" data-s="${n}">${n === 0 ? 'Specials' : 'Season ' + n}${have.includes(n) ? '' : ' ·'}</button>`).join('');
+    $('#seasons').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { cur = +b.dataset.s; drawSeasons(); drawEps(); });
+  };
+  const drawEps = async () => {
+    const mine = it.episodes.filter(e => e.season === cur);
+    let meta = [];
+    $('#eps').innerHTML = epRows(it, mine, []);
+    wireEps(it, mine);
+    if (it.meta && it.meta.tmdbId) {
+      meta = await window.api.season(it.meta.tmdbId, cur);
+      if (Array.isArray(meta) && meta.length && cur === +($('#seasons .chip.on') || {}).dataset?.s) { $('#eps').innerHTML = epRows(it, mine, meta); wireEps(it, mine); }
+    }
+  };
+  drawSeasons(); drawEps();
+}
+function epRows(it, mine, meta) {
+  const nums = [...new Set([...meta.map(m => m.n), ...mine.map(e => e.episode)])].sort((a, b) => a - b);
+  return nums.map(n => {
+    const m = meta.find(x => x.n === n) || {};
+    const files = mine.filter(e => e.episode === n);
+    const title = m.title || (files[0] && files[0].title) || 'Episode ' + n;
+    const local = files.find(f => f.source === 'local'), tb = files.find(f => f.source === 'torbox');
+    return `<div class="ep ${files.length ? '' : 'miss'}"><div class="still">${m.still ? `<img loading="lazy" src="${esc(m.still)}">` : 'E' + n}</div>
+      <div><div class="et">${n}. ${esc(title)}</div><div class="eo">${esc(m.overview || (files[0] ? files[0].name : ''))}</div></div>
+      <div class="eb">${local ? `<button class="btn small" data-ep="${n}" data-src="local">${svg(ICON.play, 13)} Play</button>` : ''}
+      ${tb ? `<button class="btn small" data-ep="${n}" data-src="torbox">${svg(ICON.play, 13)} TorBox</button>` : ''}
+      ${!files.length ? `<span class="note">Not in library</span>` : ''}</div></div>`;
+  }).join('') || '<div class="note">No episodes.</div>';
+}
+function wireEps(it, mine) {
+  $('#eps').querySelectorAll('[data-ep]').forEach(b => b.onclick = () => {
+    const f = mine.find(e => e.episode === +b.dataset.ep && e.source === b.dataset.src);
+    playEp(it, f);
+  });
+}
+async function playEp(it, ep) {
+  await doPlay({ action: 'video', file: ep, title: `${it.title} S${ep.season}E${ep.episode}` }, it);
+  window.api.saveProgress(it.id + ':' + ep.season + ':' + ep.episode, { watched: true });
+  ust.progress[it.id + ':' + ep.season + ':' + ep.episode] = { watched: true };
+}
+
+function detailMv(it, A, B) {
+  const f = it.files[0];
+  A.innerHTML = `<button class="btn primary" id="pMv">${svg(ICON.play, 16)} ${f.source === 'torbox' ? 'Stream from TorBox' : 'Play'}</button>`;
+  $('#pMv').onclick = () => doPlay({ action: 'video', file: f, title: `${it.artist} - ${it.title}` }, it);
+  const m = it.meta || {};
+  if (m.youtube) A.innerHTML += `<button class="btn" data-url="https://www.youtube.com/watch?v=${esc(m.youtube)}">${svg(ICON.ext, 15)} Official video</button>`;
+  if (m.url) A.innerHTML += `<button class="btn ghost" data-url="${esc(m.url)}">${svg(ICON.ext, 15)} IMVDb</button>`;
+  $('#pMv').onclick = () => doPlay({ action: 'video', file: f, title: `${it.artist} - ${it.title}` }, it);
+  const svcs = enabledServices('musicvideos');
+  let html = svcs.length ? `<div class="sect"><h4>Find on your services</h4><div class="services">${svcs.map(s => svcButton(s, svcSearch(s, it.artist + ' ' + it.title), true)).join('')}</div></div>` : '';
+  html += `<div class="sect"><h4>File</h4>${fileRows(it, 'video', () => 'Play')}</div>` + reclassifyHtml(it);
+  B.innerHTML = html; wireFileRows(B, it, 'video'); wireReclass(it);
+}
+
+function detailMusic(it, A, B) {
+  A.innerHTML = `<button class="btn primary" id="pAl">${svg(ICON.play, 16)} Play album</button><button class="btn" id="pSh">${svg('<path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', 16)} Shuffle</button>
+    ${it.files.some(f => f.source === 'local') ? `<button class="btn ghost" id="pDir">${svg(ICON.folder, 15)} Album folder</button>` : ''}`;
+  $('#pAl').onclick = () => { ab.shuffle = false; abLoad(it, 0, 0, it.files.map((_, i) => i)); };
+  $('#pSh').onclick = () => { ab.shuffle = true; const o = shuffled(it.files.map((_, i) => i)); abLoad(it, o[0], 0, o); };
+  if ($('#pDir')) $('#pDir').onclick = () => window.api.play({ action: 'folder', path: it.files.find(f => f.source === 'local').path });
+  const multiDisc = new Set(it.files.map(f => f.disc || 1)).size > 1;
+  const svcs = enabledServices('music');
+  let html = `<div class="sect"><h4>${it.files.length} ${it.files.length === 1 ? 'track' : 'tracks'}</h4><div class="filelist">${it.files.map((f, i) => `<div class="frow" data-playing="${esc(it.id)}:${i}" data-tr="${i}" style="cursor:pointer">
+    <span class="sub" style="width:34px;font-variant-numeric:tabular-nums">${multiDisc ? (f.disc || 1) + '-' : ''}${f.track || i + 1}</span>
+    <span class="nm" style="color:var(--text)">${esc(f.title || f.name)}${f.artist && f.artist !== it.artist ? `<span class="sub"> · ${esc(f.artist)}</span>` : ''}</span>
+    ${f.source === 'torbox' ? '<span class="src tb">TorBox</span>' : ''}<button class="btn small" data-tr="${i}">${svg(ICON.play, 13)}</button></div>`).join('')}</div></div>`;
+  if (svcs.length) html += `<div class="sect"><h4>Find on your services</h4><div class="services">${svcs.map(s => svcButton(s, svcSearch(s, it.artist + ' ' + it.title), true)).join('')}</div></div>`;
+  html += reclassifyHtml(it);
+  B.innerHTML = html;
+  B.querySelectorAll('[data-tr]').forEach(r => r.onclick = e => { e.stopPropagation(); abLoad(it, +r.dataset.tr, 0, ab.shuffle ? [+r.dataset.tr, ...shuffled(it.files.map((_, i) => i).filter(x => x !== +r.dataset.tr))] : it.files.map((_, i) => i)); });
+  if (ab.it === it) B.querySelectorAll('[data-playing]').forEach(r => r.classList.toggle('now', r.dataset.playing === it.id + ':' + ab.track));
+  wireReclass(it);
+}
+
+function detailBook(it, A, B) {
+  const f = it.files[0];
+  A.innerHTML = `<button class="btn primary" id="pBk">${svg(f.source === 'torbox' ? ICON.dl : ICON.book, 16)} ${f.source === 'torbox' ? 'Download & open' : 'Read'}</button>`;
+  $('#pBk').onclick = () => doPlay({ action: 'book', file: f, title: it.title }, it);
+  B.innerHTML = `<div class="sect"><h4>File</h4>${fileRows(it, 'book', x => x.source === 'torbox' ? 'Download' : 'Open')}</div>` + reclassifyHtml(it)
+    + `<div class="note" style="margin-top:14px">Books open in your default reader for that format (set it in Windows → Default apps).</div>`;
+  wireFileRows(B, it, 'book'); wireReclass(it);
+}
+
+function detailAudiobook(it, A, B) {
+  const pr = ust.progress[it.id];
+  A.innerHTML = `<button class="btn primary" id="pAb">${svg(ICON.play, 16)} ${pr && pr.pos ? 'Resume · ' + (it.files.length > 1 ? 'track ' + (pr.track + 1) + ' · ' : '') + fmtTime(pr.pos) : 'Listen'}</button>
+    ${pr && pr.pos ? `<button class="btn" id="pAb0">Start over</button>` : ''}`;
+  $('#pAb').onclick = () => abLoad(it, pr ? pr.track : 0, pr ? pr.pos : 0);
+  if ($('#pAb0')) $('#pAb0').onclick = () => abLoad(it, 0, 0);
+  B.innerHTML = `<div class="sect"><h4>${it.files.length} ${it.files.length === 1 ? 'file' : 'tracks'}</h4><div class="filelist">${it.files.map((f, i) => `<div class="frow"><span class="sub" style="width:28px">${i + 1}</span>
+    <span class="nm">${esc(f.name)}</span>${f.source === 'torbox' ? '<span class="src tb">TorBox</span>' : ''}<button class="btn small" data-tr="${i}">${svg(ICON.play, 13)}</button></div>`).join('')}</div></div>` + reclassifyHtml(it);
+  B.querySelectorAll('[data-tr]').forEach(b => b.onclick = () => abLoad(it, +b.dataset.tr, 0));
+  wireReclass(it);
+}
+
+function detailGame(it, A, B) {
+  const conf = cfg.categories.games;
+  const btns = [];
+  if (it.installed || it.source === 'psplus') btns.push(`<button class="btn primary" id="gPlay">${svg(ICON.play, 16)} ${it.source === 'psplus' ? 'Open PS Plus' : 'Play'}</button>`);
+  if (it.source === 'gamepass' && it.gamepass.pc && !it.installed) btns.push(`<button class="btn ${it.gamepass.cloud ? '' : 'primary'}" id="gXbox">${svg(ICON.dl, 16)} Install in Xbox app</button>`);
+  if (it.cloudUrl) btns.push(`<button class="btn ${it.installed ? '' : 'primary'}" id="gCloud">${svg(ICON.cloud, 16)} Play in Cloud</button>`);
+  if (it.source === 'torbox') btns.push(`<button class="btn primary" id="gTb">${svg(ICON.dl, 16)} Download from TorBox</button>`);
+  if (it.storeUrl) btns.push(`<button class="btn ghost" data-url="${esc(it.storeUrl)}">${svg(ICON.ext, 15)} Store page</button>`);
+  if (it.installDir) btns.push(`<button class="btn ghost" id="gDir">${svg(ICON.folder, 15)} ${it.source === 'emulator' ? 'ROM folder' : 'Install folder'}</button>`);
+  A.innerHTML = btns.join('');
+  const L = l => doPlay({ action: 'game', launch: l }, it);
+  if ($('#gPlay')) $('#gPlay').onclick = () => it.source === 'psplus' ? launchPs(it) : L(it.launch);
+  if ($('#gXbox')) $('#gXbox').onclick = () => L({ type: 'uri', target: 'msxbox://game/?productId=' + it.storeId });
+  if ($('#gCloud')) $('#gCloud').onclick = () => L({ type: 'cloud', target: it.cloudUrl, mode: conf.gamepass.cloudMode });
+  if ($('#gTb')) $('#gTb').onclick = () => L(it.launch);
+  if ($('#gDir')) $('#gDir').onclick = () => window.api.play({ action: 'folder', path: it.installDir });
+  let html = '';
+  if (it.source === 'psplus') html += `<div class="note" style="margin-top:6px">Sony doesn't provide per-game launch links, so this opens the PlayStation Plus app, where you pick the game.</div>`;
+  if (it.size) html += `<div class="note">Size: ${fmtSize(it.size)}</div>`;
+  if (it.source === 'emulator') html += `<div class="sect"><h4>${esc(it.systemName)}</h4><div class="filelist"><div class="frow"><span class="src">${esc(it.sourceLabel)}</span><span class="nm" title="${esc(it.romPath)}">${esc(it.romPath.split(/[\\/]/).pop())}</span>${it.inArchive ? '<span class="src">in zip</span>' : ''}${it.region ? `<span class="sub">${esc(it.region)}</span>` : ''}</div></div>
+    <div class="note" style="margin-top:8px">Plays with ${esc(it.emulatorLabel)}. Change it in Library Setup → Games → Emulation.</div></div>`;
+  if (it.variants && it.variants.length) html += `<div class="sect"><h4>Other versions (${it.variants.length})</h4><div class="filelist">${it.variants.map((v, i) => `<div class="frow"><span class="nm" title="${esc(v.romPath)}" style="${v.bad ? 'opacity:.6' : ''}">${esc(v.label)}</span>${v.bad ? '<span class="src">bad / hack</span>' : ''}<button class="btn small" data-var="${i}">${svg(ICON.play, 13)} Play</button></div>`).join('')}</div></div>`;
+  B.innerHTML = html;
+  B.querySelectorAll('[data-var]').forEach(b => b.onclick = () => doPlay({ action: 'game', launch: it.variants[+b.dataset.var].launch }, it));
+}
+function launchPs(it) {
+  const p = cfg.categories.games.psplus;
+  if (!p.appPath) { toast('Set the PlayStation Plus app path in Library Setup → Games', 'bad'); return; }
+  doPlay({ action: 'game', launch: { type: 'exe', target: p.appPath } }, it);
+}
+
+/* ============================== audio player (audiobooks + music) ============================== */
+const ab = { it: null, track: 0, timer: null, order: [], qi: 0, shuffle: false };
+const audio = $('#abAudio');
+const shuffled = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+async function abLoad(it, track, pos = 0, order) {
+  const isMusic = it.cat === 'music';
+  ab.it = it; ab.track = track;
+  ab.order = order || (ab.it === it && ab.order.length === it.files.length ? ab.order : it.files.map((_, i) => i));
+  ab.qi = Math.max(0, ab.order.indexOf(track));
+  const f = it.files[track];
+  let src;
+  try { src = f.source === 'torbox' ? await window.api.torboxLink(f.tb) : fileUrl(f.path); }
+  catch (e) { toast('Could not get stream: ' + e.message, 'bad'); return; }
+  if (src && src.ok === false) { toast(src.error, 'bad'); return; }
+  audio.src = src;
+  audio.playbackRate = isMusic ? 1 : +$('#abRate').value;
+  audio.onloadedmetadata = () => { if (pos) audio.currentTime = Math.min(pos, audio.duration - 2); audio.play(); };
+  $('#ab').classList.toggle('music', isMusic);
+  $('#ab').style.setProperty('--pc', `var(--c-${it.cat})`);
+  $('#abImg').src = it.poster || '';
+  const n = it.files.length;
+  if (isMusic) {
+    $('#abTitle').textContent = f.title || f.name;
+    $('#abSub').textContent = [f.artist || it.artist, it.title, n > 1 ? `${ab.qi + 1} of ${n}` : ''].filter(Boolean).join(' · ');
+  } else {
+    $('#abTitle').textContent = it.title;
+    $('#abSub').textContent = (it.author ? it.author + ' · ' : '') + (n > 1 ? `Track ${track + 1} of ${n}` : '');
+  }
+  $('#abShuf').classList.toggle('on', ab.shuffle);
+  $('#ab').classList.add('on'); $('#main').classList.add('abon'); document.body.classList.add('abon');
+  document.querySelectorAll('[data-playing]').forEach(r => r.classList.toggle('now', r.dataset.playing === it.id + ':' + track));
+  window.api.markPlayed(it.id).then(s => ust = s);
+}
+function abNext() { if (ab.it && ab.qi < ab.order.length - 1) abLoad(ab.it, ab.order[ab.qi + 1], 0, ab.order); }
+function abPrev() { if (audio.currentTime > 5 || ab.qi === 0) audio.currentTime = 0; else abLoad(ab.it, ab.order[ab.qi - 1], 0, ab.order); }
+function abSave() {
+  if (!ab.it || ab.it.cat !== 'audiobooks' || !audio.duration) return;
+  const totalTracks = ab.it.files.length;
+  const pct = (ab.track + audio.currentTime / audio.duration) / totalTracks;
+  const data = { track: ab.track, pos: audio.currentTime, pct };
+  ust.progress[ab.it.id] = data; window.api.saveProgress(ab.it.id, data);
+}
+function abIcon() { $('#abPlay').innerHTML = svg(audio.paused ? ICON.play : ICON.pause); }
+audio.addEventListener('play', () => { abIcon(); clearInterval(ab.timer); ab.timer = setInterval(abSave, 10000); });
+audio.addEventListener('pause', () => { abIcon(); abSave(); clearInterval(ab.timer); });
+audio.addEventListener('timeupdate', () => { $('#abCur').textContent = fmtTime(audio.currentTime); $('#abDur').textContent = fmtTime(audio.duration); if (audio.duration) $('#abSeek').value = audio.currentTime / audio.duration * 1000; });
+audio.addEventListener('ended', () => { if (ab.it && ab.qi < ab.order.length - 1) abNext(); else abSave(); });
+audio.addEventListener('error', () => { if (audio.src) toast('This audio file could not be played', 'bad'); });
+$('#abPlay').onclick = () => audio.paused ? audio.play() : audio.pause();
+$('#abBack').onclick = () => audio.currentTime -= 30;
+$('#abFwd').onclick = () => audio.currentTime += 30;
+$('#abPrev').onclick = abPrev;
+$('#abNext').onclick = abNext;
+$('#abShuf').onclick = () => {
+  ab.shuffle = !ab.shuffle; $('#abShuf').classList.toggle('on', ab.shuffle);
+  if (!ab.it) return;
+  const cur = ab.track, rest = ab.it.files.map((_, i) => i).filter(i => i !== cur);
+  ab.order = [cur, ...(ab.shuffle ? shuffled(rest) : rest.sort((a, b) => a - b))]; ab.qi = 0;
+  if (!ab.shuffle) { ab.order = ab.it.files.map((_, i) => i); ab.qi = cur; }
+};
+$('#abSeek').oninput = e => { if (audio.duration) audio.currentTime = e.target.value / 1000 * audio.duration; };
+$('#abRate').onchange = e => audio.playbackRate = +e.target.value;
+$('#abClose').onclick = () => { abSave(); audio.pause(); $('#ab').classList.remove('on'); $('#main').classList.remove('abon'); document.body.classList.remove('abon'); };
+abIcon();
+
+/* ============================== Library Setup ============================== */
+const SETUP_TABS = [['general', 'General', 'setup'], ...CATS.map(c => [c.id, c.label, c.id])];
+function renderSetup() {
+  if (!ui.draft) ui.draft = JSON.parse(JSON.stringify(cfg));
+  const d = ui.draft;
+  let html = `<div class="setup"><h1 class="cat">Library Setup</h1><div class="sub">Folders, streaming services, scrapers, TorBox and game platforms — per category.</div>`;
+  if (!cfg.setupDone) html += `<div class="welcome"><b>Welcome to OmniLauncher.</b><br>Start on <i>General</i> with your API keys (TMDB for movie/TV metadata, TorBox if you use it), then go tab by tab. Hit <b>Save &amp; Scan</b> when you're done — you can come back any time.</div>`;
+  html += `<div class="tabs">${SETUP_TABS.map(([id, l, c]) => `<button data-tab="${id}" class="${ui.setupTab === id ? 'on' : ''}" style="--tc:var(--c-${c})">${l}</button>`).join('')}</div><div id="setupBody" style="--tc:var(--c-${ui.setupTab === 'general' ? 'setup' : ui.setupTab})"></div>
+    <div class="savebar"><button class="btn" id="sCancel">Discard changes</button><button class="btn" id="sSave">Save</button><button class="btn primary" style="--cc:var(--accent)" id="sScan">${svg(ICON.scan, 16)} Save &amp; Scan</button></div></div>`;
+  $('#view').innerHTML = html;
+  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { ui.setupTab = b.dataset.tab; renderSetup(); });
+  $('#sCancel').onclick = () => { ui.draft = null; renderSetup(); toast('Changes discarded'); };
+  $('#sSave').onclick = () => saveSetup(false);
+  $('#sScan').onclick = () => saveSetup(true);
+  const body = $('#setupBody');
+  if (ui.setupTab === 'general') setupGeneral(body, d); else if (ui.setupTab === 'games') setupGames(body, d); else setupMedia(body, d, ui.setupTab);
+}
+async function saveSetup(scan) {
+  ui.draft.setupDone = true;
+  cfg = await window.api.setConfig(ui.draft);
+  ui.draft = null;
+  toast('Settings saved', 'ok');
+  if (scan) { rescan(); go('home'); } else renderSetup();
+}
+const tog = (key, label, on, help = '', dis = false) => `<label class="tog ${dis ? 'dis' : ''}" tabindex="0"><input type="checkbox" data-k="${key}" ${on ? 'checked' : ''}><span class="sw"></span><span>${label}${help ? `<small>${help}</small>` : ''}</span></label>`;
+function setPath(obj, keyPath, val) { const ks = keyPath.split('.'); let o = obj; while (ks.length > 1) o = o[ks.shift()]; o[ks[0]] = val; }
+function getPath(obj, keyPath) { return keyPath.split('.').reduce((o, k) => o && o[k], obj); }
+function wireToggles(root, d, after) {
+  root.querySelectorAll('input[data-k]').forEach(i => i.onchange = () => { setPath(d, i.dataset.k, i.type === 'checkbox' ? i.checked : i.value); if (after) after(i.dataset.k); });
+}
+
+function setupGeneral(body, d) {
+  const key = (k, label, help) => `<div class="field"><label>${label}</label><div><div class="inline"><input class="inp" type="password" data-k="keys.${k}" value="${esc(d.keys[k])}" placeholder="Paste key">
+    <button class="btn small" data-test="${k}">Test</button><span class="keyok" id="ko-${k}"></span></div><div class="note" style="margin-top:5px">${help}</div></div></div>`;
+  const pm = d.player.mode;
+  body.innerHTML = `
+  <div class="card2"><h3>API keys</h3><div class="sub">Stored locally on this PC only.</div>
+    ${key('tmdb', 'TMDB', 'Movie &amp; TV metadata, artwork, episode lists and “where to stream”. Free key or v4 read token at themoviedb.org → Settings → API.')}
+    ${key('omdb', 'OMDb <span class="pill">optional</span>', 'Alternative/fallback scraper using IMDb data. Free key at omdbapi.com.')}
+    ${key('torbox', 'TorBox', 'Your TorBox API key (torbox.app → Settings). Then switch TorBox on in each category tab.')}
+    ${key('imvdb', 'IMVDb <span class="pill">optional</span>', 'Music video stills, year, director and the official YouTube link. Free app key at imvdb.com → Developers → register an app.')}
+    ${key('steamgriddb', 'SteamGridDB <span class="pill">optional</span>', 'Box art for Epic, GOG, Xbox, PS Plus and folder games. Free key at steamgriddb.com → Preferences → API.')}
+  </div>
+  <div class="card2"><h3>Video player</h3><div class="sub">Used for movies, TV and music videos. VLC or mpv are best for MKV / HEVC / 4K and TorBox streams.</div>
+    <div class="inline" style="flex-wrap:wrap;gap:8px;margin-bottom:10px">${[['default', 'Windows default app'], ['vlc', 'VLC'], ['mpv', 'mpv'], ['builtin', 'Built-in player']].map(([k, l]) => `<button class="chip ${pm === k ? 'on' : ''}" data-pm="${k}">${l}</button>`).join('')}
+      <button class="btn small" id="detPl">Auto-detect</button></div>
+    <div class="field"><label>VLC path</label><div class="inline"><input class="inp" data-k="player.vlcPath" value="${esc(d.player.vlcPath)}" placeholder="C:\\Program Files\\VideoLAN\\VLC\\vlc.exe"><button class="btn small" data-browse="player.vlcPath">Browse</button></div></div>
+    <div class="field"><label>mpv path</label><div class="inline"><input class="inp" data-k="player.mpvPath" value="${esc(d.player.mpvPath)}" placeholder="C:\\mpv\\mpv.exe"><button class="btn small" data-browse="player.mpvPath">Browse</button></div></div>
+    <div class="note">With “Windows default app”, TorBox streams fall back to the built-in player.</div>
+  </div>
+  <div class="card2" id="updCard"><h3>Updates</h3><div class="sub" id="updLine">Checking…</div>
+    ${tog('updates.auto', 'Download updates automatically', d.updates.auto !== false, 'They install when you close OmniLauncher, or right away with “Restart &amp; install”.')}
+    <div class="actions" style="margin:10px 0 0"><button class="btn small" id="updCheck">Check for updates</button><button class="btn small primary" id="updNow" style="display:none;--cc:var(--ok)">Restart &amp; install</button><button class="btn small" id="updDl" style="display:none">Download update</button></div>
+  </div>
+  <div class="card2"><h3>Couch mode &amp; controller</h3><div class="sub">Full-screen, bigger, controller-driven. Toggle any time with <b>Start/☰</b> on the controller or <b>F10</b>.</div>
+    ${tog('couch.startInCouch', 'Start OmniLauncher in couch mode', d.couch.startInCouch)}
+    ${tog('couch.autoOnController', 'Switch to couch mode when I pick up a controller', d.couch.autoOnController)}
+    <div class="field"><label>Couch mode size</label><div class="inline">${[1, 1.25, 1.5, 1.75].map(z => `<button class="chip ${d.couch.scale === z ? 'on' : ''}" data-zoom="${z}">${Math.round(z * 100)}%</button>`).join('')}</div></div>
+    <div class="note">Controls: D-pad / left stick move · A select · B back · X play · Y search · LB/RB switch category · LT/RT scroll · View/Back opens Library Setup.</div>
+    <div class="actions" style="margin:12px 0 0"><button class="btn small" id="couchNow">Enter couch mode now</button></div>
+  </div>
+  <div class="card2"><h3>Region</h3><div class="sub">Used for “where to stream” availability and the Game Pass catalog.</div>
+    <div class="field"><label>Country</label><select class="sel" data-k="region">${REGIONS.map(r => `<option ${d.region === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+  </div>`;
+  wireToggles(body, d);
+  body.querySelectorAll('select[data-k]').forEach(s => s.onchange = () => setPath(d, s.dataset.k, s.value));
+  body.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { d.player.mode = b.dataset.pm; setupGeneral(body, d); });
+  body.querySelectorAll('[data-zoom]').forEach(b => b.onclick = () => { d.couch.scale = +b.dataset.zoom; setupGeneral(body, d); });
+  wireUpdates();
+  $('#couchNow').onclick = () => { cfg.couch = { ...cfg.couch, ...d.couch }; setCouch(true); };
+  body.querySelectorAll('[data-browse]').forEach(b => b.onclick = async () => { const f = await window.api.pickFile([{ name: 'Programs', extensions: ['exe'] }]); if (f) { setPath(d, b.dataset.browse, f); setupGeneral(body, d); } });
+  $('#detPl').onclick = async () => { const r = await window.api.detectPlayers(); if (r.vlc) d.player.vlcPath = r.vlc; if (r.mpv) d.player.mpvPath = r.mpv; if (d.player.mode === 'default' && r.vlc) d.player.mode = 'vlc'; setupGeneral(body, d); toast(r.vlc || r.mpv ? 'Found: ' + [r.vlc && 'VLC', r.mpv && 'mpv'].filter(Boolean).join(', ') : 'No VLC or mpv found', r.vlc || r.mpv ? 'ok' : 'bad'); };
+  body.querySelectorAll('[data-test]').forEach(b => b.onclick = async () => {
+    const k = b.dataset.test, out = $('#ko-' + k);
+    if (!d.keys[k]) { out.textContent = 'Enter a key first'; out.className = 'keyok bad'; return; }
+    out.textContent = 'Testing…'; out.className = 'keyok';
+    const r = await window.api.testKey(k, d.keys[k]);
+    out.textContent = r.ok ? '✓ ' + r.msg : '✕ ' + r.error; out.className = 'keyok ' + (r.ok ? 'ok' : 'bad');
+  });
+}
+
+function foldersCard(d, cat, title, help) {
+  const fs = d.categories[cat].folders;
+  return `<div class="card2"><h3>${title}</h3><div class="sub">${help}</div>
+    <div class="folders">${fs.map((f, i) => `<div class="folder"><span title="${esc(f)}">${esc(f)}</span><button data-rmf="${i}" title="Remove">×</button></div>`).join('') || '<div class="note">No folders yet.</div>'}</div>
+    <button class="btn small" data-addf="${cat}">+ Add folder</button></div>`;
+}
+function wireFolders(body, d, cat, redraw) {
+  body.querySelectorAll('[data-rmf]').forEach(b => b.onclick = () => { d.categories[cat].folders.splice(+b.dataset.rmf, 1); redraw(); });
+  body.querySelectorAll('[data-addf]').forEach(b => b.onclick = async () => {
+    const picked = await window.api.pickFolders();
+    for (const p of picked) if (!d.categories[cat].folders.includes(p)) d.categories[cat].folders.push(p);
+    redraw();
+  });
+}
+function torboxToggle(d, cat, what) {
+  const has = !!d.keys.torbox;
+  return `<div class="card2"><h3>TorBox</h3><div class="sub">${has ? 'Pull matching items from your TorBox library into ' + what + '.' : 'Add your TorBox API key on the General tab to enable this.'}</div>
+    ${tog(`categories.${cat}.torbox`, 'Include my TorBox library', d.categories[cat].torbox, cat === 'movies' || cat === 'tv' ? 'Video torrents with S01E02-style names go to TV; the rest go to Movies. You can re-file any item from its detail page.' : cat === 'music' || cat === 'audiobooks' ? 'Audio torrents with M4B files or “audiobook / unabridged / chapter” names go to Audiobooks; other audio goes to Music. You can re-file any item from its detail page.' : '', !has)}</div>`;
+}
+
+function setupMedia(body, d, cat) {
+  const c = d.categories[cat];
+  const redraw = () => setupMedia(body, d, cat);
+  const folderHelp = {
+    movies: 'One movie per file or per folder, e.g. <code>Movies\\Heat (1995)\\Heat.1995.1080p.mkv</code>.',
+    tv: 'Episodes need S01E02 or 1x02 in the name; show name comes from the file or its folder.',
+    music: 'MP3, FLAC, M4A, OGG, OPUS, WAV. <code>Artist\\Album\\01 - Track.flac</code> is ideal; MP3/FLAC tags are read when present. Cover art comes from cover.jpg / folder.jpg, embedded art, or MusicBrainz.',
+    musicvideos: 'Name files <code>Artist - Title.mp4</code>, or put them in artist folders.',
+    books: 'EPUB, PDF, MOBI, AZW3, CBZ/CBR, FB2. Calibre libraries work as-is.',
+    audiobooks: 'One folder per book (MP3/M4A/FLAC tracks), or single M4B files. <code>Author\\Title\\</code> is ideal.',
+  }[cat];
+  let html = `<div class="card2">${tog(`categories.${cat}.enabled`, 'Show ' + CAT[cat].label + ' in the launcher', c.enabled)}</div>`;
+  html += foldersCard(d, cat, 'Folders', folderHelp);
+
+  if (cat === 'movies' || cat === 'tv') {
+    const sc = c.scraper;
+    html += `<div class="card2"><h3>Metadata scraper</h3><div class="sub">Posters, backdrops, plot, ratings${cat === 'tv' ? ', episode titles and stills' : ''}, and streaming availability.</div>
+      <div class="inline" style="gap:8px">${[['tmdb', 'TMDB'], ['omdb', 'OMDb'], ['none', 'None (filenames only)']].map(([k, l]) => `<button class="chip ${sc === k ? 'on' : ''}" data-sc="${k}">${l}</button>`).join('')}</div>
+      ${sc === 'tmdb' && !d.keys.tmdb ? `<div class="note" style="margin-top:10px;color:var(--bad)">No TMDB key yet — add one on the General tab${d.keys.omdb ? ' (OMDb will be used meanwhile)' : ''}.</div>` : ''}
+      ${sc === 'omdb' && !d.keys.omdb ? `<div class="note" style="margin-top:10px;color:var(--bad)">No OMDb key yet — add one on the General tab.</div>` : ''}
+      ${sc === 'omdb' ? `<div class="note" style="margin-top:10px">OMDb has no streaming-availability or episode-still data; TMDB is recommended.</div>` : ''}</div>`;
+  }
+  if (cat === 'musicvideos') {
+    html += `<div class="card2"><h3>Video info</h3>${tog('categories.musicvideos.scraper', 'Look up music videos on IMVDb', c.scraper === 'imvdb', d.keys.imvdb ? 'Adds stills, year, director and the official YouTube link. Name files <code>Artist - Title</code> for the best matches.' : 'Add your IMVDb app key on the General tab to use this.', !d.keys.imvdb)}</div>`;
+  }
+  if (cat === 'music') {
+    html += `<div class="card2"><h3>Album art</h3>${tog('categories.music.scraper', 'Look up missing album art on MusicBrainz / Cover Art Archive', c.scraper === 'musicbrainz', 'Free, no key. MusicBrainz allows about one lookup per second, so a big first scan takes a while; results are cached.')}</div>`;
+  }
+  if (cat === 'books' || cat === 'audiobooks') {
+    html += `<div class="card2"><h3>Covers &amp; metadata</h3>${tog(`categories.${cat}.scraper`, 'Look up missing covers and authors on Open Library', c.scraper === 'openlibrary', 'Embedded EPUB/CBZ covers and cover.jpg / folder.jpg files are always used first.')}</div>`;
+  }
+  if (cat === 'movies' || cat === 'tv' || cat === 'music' || cat === 'musicvideos') {
+    const defs = svcDefs(cat);
+    const on = id => c.services.find(s => s.id === id);
+    html += `<div class="card2"><h3>Streaming services</h3><div class="sub">${cat === 'music' ? 'Shown on the Music page, with “find this album” buttons on every album.' : cat === 'musicvideos' ? 'Shown on the Music Videos page, with “find this video” search buttons.' : 'Shown on the page, and each title shows which of your services has it (via TMDB) plus quick search links.'}</div>
+      <div class="svcgrid">${defs.map(s => `<button class="svct ${on(s.id) ? 'on' : ''}" style="--sc:${s.color}" data-svc="${s.id}"><span class="dot"></span>${esc(s.name)}<span class="ck"></span></button>`).join('')}</div>
+      ${defs.filter(s => s.configurable && on(s.id)).map(s => `<div class="field"><label>${esc(s.name)} server URL</label><input class="inp" data-base="${s.id}" value="${esc(on(s.id).base || '')}" placeholder="${s.id === 'jellyfin' ? 'https://your-jellyfin-server' : 'https://app.plex.tv/desktop (default)'}"></div>`).join('')}
+      <div class="sect" style="margin-top:18px"><h4>Custom services</h4>
+        <div class="folders">${c.services.filter(s => s.custom).map(s => `<div class="folder"><span>${esc(s.name)} — ${esc(s.url)}</span><button data-rmsvc="${esc(s.id)}">×</button></div>`).join('')}</div>
+        <div class="inline" style="flex-wrap:wrap"><input class="inp" style="width:170px" id="cName" placeholder="Name"><input class="inp" style="flex:1;min-width:200px" id="cUrl" placeholder="Home URL"><input class="inp" style="flex:1;min-width:200px" id="cSearch" placeholder="Search URL with {q} (optional)"><button class="btn small" id="cAdd">Add</button></div></div></div>`;
+  }
+  html += torboxToggle(d, cat, CAT[cat].label);
+  body.innerHTML = html;
+  wireToggles(body, d, k => { if (k.endsWith('.scraper')) { c.scraper = c.scraper === true ? (cat === 'music' ? 'musicbrainz' : cat === 'musicvideos' ? 'imvdb' : 'openlibrary') : c.scraper === false ? 'none' : c.scraper; } });
+  wireFolders(body, d, cat, redraw);
+  body.querySelectorAll('[data-sc]').forEach(b => b.onclick = () => { c.scraper = b.dataset.sc; redraw(); });
+  body.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => {
+    const id = b.dataset.svc, i = c.services.findIndex(s => s.id === id);
+    if (i >= 0) c.services.splice(i, 1); else c.services.push({ id });
+    redraw();
+  });
+  body.querySelectorAll('[data-base]').forEach(i => i.oninput = () => { const s = c.services.find(x => x.id === i.dataset.base); if (s) s.base = i.value.trim(); });
+  body.querySelectorAll('[data-rmsvc]').forEach(b => b.onclick = () => { c.services = c.services.filter(s => s.id !== b.dataset.rmsvc); redraw(); });
+  if ($('#cAdd')) $('#cAdd').onclick = () => {
+    const name = $('#cName').value.trim(), url = $('#cUrl').value.trim(), search = $('#cSearch').value.trim();
+    if (!name || !/^https?:\/\//.test(url)) { toast('Enter a name and a full http(s) URL', 'bad'); return; }
+    c.services.push({ id: 'custom-' + Date.now().toString(36), custom: true, name, url, search: search || '', color: '#9aa3b8' });
+    redraw();
+  };
+}
+
+function setupGames(body, d) {
+  const g = d.categories.games;
+  const redraw = () => setupGames(body, d);
+  let html = `<div class="card2">${tog('categories.games.enabled', 'Show Games in the launcher', g.enabled)}</div>
+  <div class="card2"><h3>Scan this PC</h3><div class="sub">Finds installed games from your launchers automatically.</div><div class="subgrid">
+    ${tog('categories.games.scanners.steam', 'Steam', g.scanners.steam, 'All Steam library folders')}
+    ${tog('categories.games.scanners.epic', 'Epic Games', g.scanners.epic, 'Epic launcher manifests')}
+    ${tog('categories.games.scanners.gog', 'GOG', g.scanners.gog, 'GOG / GOG Galaxy installs')}
+    ${tog('categories.games.scanners.xbox', 'Xbox app / Microsoft Store', g.scanners.xbox, 'Installed Game Pass & Store games')}
+    ${tog('categories.games.scanners.ubisoft', 'Ubisoft Connect', g.scanners.ubisoft, 'Ubisoft launcher installs')}
+  </div></div>
+  ${foldersCard(d, 'games', 'Game folders', 'Each subfolder is treated as one game (the main .exe is picked automatically). A folder full of shortcuts (.lnk / .url) works too — each shortcut becomes a game.')}
+  ${emulationCard(g)}
+  <div class="card2"><h3>Xbox Game Pass</h3><div class="sub">Pulls the current Game Pass catalog for your region. Installed titles launch directly; others open in the Xbox app or Xbox Cloud Gaming.</div>
+    ${tog('categories.games.gamepass.enabled', 'Include Xbox Game Pass', g.gamepass.enabled)}
+    ${g.gamepass.enabled ? `<div class="subgrid">${tog('categories.games.gamepass.catalogs.pc', 'PC Game Pass catalog', g.gamepass.catalogs.pc)}${tog('categories.games.gamepass.catalogs.cloud', 'Cloud Gaming catalog', g.gamepass.catalogs.cloud, 'Needs Game Pass Ultimate')}</div>
+      <div class="field"><label>Open cloud games in</label><div class="inline">${[['browser', 'Default browser'], ['window', 'OmniLauncher window']].map(([k, l]) => `<button class="chip ${g.gamepass.cloudMode === k ? 'on' : ''}" data-cm="${k}">${l}</button>`).join('')}</div></div>
+      <div class="note">In an OmniLauncher window you sign in to xbox.com once; press F11 for full screen.</div>` : ''}
+  </div>
+  <div class="card2"><h3>PlayStation Plus (cloud streaming)</h3><div class="sub">Requires PS Plus Premium and Sony's PlayStation Plus PC app. Sony doesn't expose its catalog or per-game launch links, so add the titles you play and they'll open the PS Plus app.</div>
+    ${tog('categories.games.psplus.enabled', 'Include PlayStation Plus', g.psplus.enabled)}
+    ${g.psplus.enabled ? `<div class="field"><label>PS Plus app</label><div class="inline"><input class="inp" data-k="categories.games.psplus.appPath" value="${esc(g.psplus.appPath)}" placeholder="…\\PlayStationPlus\\pspluslauncher.exe"><button class="btn small" id="psDet">Auto-detect</button><button class="btn small" id="psBrowse">Browse</button></div></div>
+      <div class="sect"><h4>Your PS Plus titles</h4><div class="folders">${g.psplus.titles.map((t, i) => `<div class="folder"><span>${esc(t.title)}</span><button data-rmps="${i}">×</button></div>`).join('') || '<div class="note">None yet.</div>'}</div>
+      <div class="inline"><input class="inp" id="psTitle" placeholder="Game title, e.g. Ghost of Tsushima"><button class="btn small" id="psAdd">Add</button></div></div>` : ''}
+  </div>
+  <div class="card2"><h3>Add a game manually</h3><div class="sub">Anything else: an emulator, a launcher shortcut, or a URL like <code>steam://</code> or <code>https://</code>.</div>
+    <div class="folders">${(g.manual || []).map((m, i) => `<div class="folder"><span>${esc(m.title)} — ${esc(m.target)}</span><button data-rmman="${i}">×</button></div>`).join('')}</div>
+    <div class="inline"><input class="inp" style="width:220px" id="mTitle" placeholder="Title"><input class="inp" id="mTarget" placeholder="Path to .exe / .lnk, or a URL"><button class="btn small" id="mBrowse">Browse</button><button class="btn small" id="mAdd">Add</button></div></div>
+  <div class="card2"><h3>Artwork</h3>${tog('categories.games.artwork', 'Fetch box art from SteamGridDB', g.artwork === 'steamgriddb', d.keys.steamgriddb ? 'Used for games without official art (Steam and Game Pass already have it).' : 'Add a SteamGridDB key on the General tab to use this.', !d.keys.steamgriddb)}</div>
+  ${torboxToggle(d, 'games', 'Games (repacks, ISOs and installers show up as downloads)')}`;
+  body.innerHTML = html;
+  wireToggles(body, d, k => { if (k === 'categories.games.artwork') g.artwork = g.artwork ? 'steamgriddb' : 'none'; if (/gamepass\.enabled|psplus\.enabled|emulation\.enabled/.test(k)) redraw(); if (/retroarchPath/.test(k)) { ui.emuCoresFor = null; } });
+  wireEmulation(body, g, redraw);
+  wireFolders(body, d, 'games', redraw);
+  body.querySelectorAll('[data-cm]').forEach(b => b.onclick = () => { g.gamepass.cloudMode = b.dataset.cm; redraw(); });
+  body.querySelectorAll('[data-rmps]').forEach(b => b.onclick = () => { g.psplus.titles.splice(+b.dataset.rmps, 1); redraw(); });
+  body.querySelectorAll('[data-rmman]').forEach(b => b.onclick = () => { g.manual.splice(+b.dataset.rmman, 1); redraw(); });
+  if ($('#psAdd')) $('#psAdd').onclick = () => { const t = $('#psTitle').value.trim(); if (t) { g.psplus.titles.push({ title: t }); redraw(); } };
+  if ($('#psDet')) $('#psDet').onclick = async () => { const r = await window.api.detectPsPlus(); if (r.app) { g.psplus.appPath = r.app; redraw(); toast('Found the PlayStation Plus app', 'ok'); } else toast('PlayStation Plus app not found — install it from playstation.com or browse to it', 'bad'); };
+  if ($('#psBrowse')) $('#psBrowse').onclick = async () => { const f = await window.api.pickFile([{ name: 'Programs', extensions: ['exe'] }]); if (f) { g.psplus.appPath = f; redraw(); } };
+  $('#mBrowse').onclick = async () => { const f = await window.api.pickFile(); if (f) { $('#mTarget').value = f; if (!$('#mTitle').value) $('#mTitle').value = f.split(/[\\/]/).pop().replace(/\.\w+$/, ''); } };
+  $('#mAdd').onclick = () => { const title = $('#mTitle').value.trim(), target = $('#mTarget').value.trim(); if (!title || !target) { toast('Enter a title and a path or URL', 'bad'); return; } (g.manual = g.manual || []).push({ title, target }); redraw(); };
+}
+
+/* ---------- emulation setup ---------- */
+let emuSys = [];
+const sysOf = id => emuSys.find(s => s.id === id) || { id, name: id, full: id, cores: [], standalone: [] };
+function emulationCard(g) {
+  const e = g.emulation;
+  let h = `<div class="card2"><h3>Emulation / retro games</h3><div class="sub">Point each system at a ROM folder. Games launch in RetroArch (one core per system) or a standalone emulator like Dolphin or PCSX2. Box art comes from the libretro thumbnail database — No-Intro / Redump file names match best.</div>
+    ${tog('categories.games.emulation.enabled', 'Include emulated games', e.enabled)}`;
+  if (!e.enabled) return h + '</div>';
+  const cores = ui.emuCores || [];
+  h += `<div class="field"><label>RetroArch</label><div><div class="inline"><input class="inp" data-k="categories.games.emulation.retroarchPath" value="${esc(e.retroarchPath)}" placeholder="C:\\RetroArch-Win64\\retroarch.exe"><button class="btn small" id="raDet">Find emulators</button><button class="btn small" id="raBrowse">Browse</button></div>
+      ${!e.retroarchPath && e.systems.some(c => c.emulator !== 'custom') ? `<div class="note" style="margin-top:6px;color:var(--bad)">Your systems are set to RetroArch, but RetroArch isn't set up, so games can't launch. Click <b>Find emulators</b> (it also searches around your ROM folders), browse to retroarch.exe, or switch a system to a standalone emulator.</div>` : ''}
+      <div class="note" style="margin-top:5px">${e.retroarchPath ? (cores.length ? `${cores.length} cores installed. Install more in RetroArch → Main Menu → Load Core → Download a Core.` : 'No cores found next to this retroarch.exe yet — install them in RetroArch → Load Core → Download a Core.') : 'Optional if you only use standalone emulators. Get it free at retroarch.com.'}</div></div></div>
+    ${tog('categories.games.emulation.fullscreen', 'Start RetroArch games full screen', e.fullscreen !== false)}
+    <div class="sect"><h4>ROM folders</h4><div class="inline" style="flex-wrap:wrap"><button class="btn small" id="emuAddRoot">+ Add ROM folder</button>
+      <span class="note">Pick a folder named after a system (e.g. <code>SNES</code>), or a parent folder with one subfolder per system — they're matched automatically.</span></div>
+      <div class="inline" style="margin-top:10px"><select class="sel" id="emuAddSys"><option value="">Or add a system manually…</option>${emuSys.filter(s => !e.systems.some(x => x.id === s.id)).map(s => `<option value="${s.id}">${esc(s.full)}</option>`).join('')}</select></div></div>`;
+  for (const [i, c] of e.systems.entries()) {
+    const sys = sysOf(c.id);
+    const opts = sys.cores.map(core => `<option value="ra:${core}" ${c.emulator !== 'custom' && (c.core || sys.cores.find(x => cores.includes(x)) || sys.cores[0]) === core ? 'selected' : ''}>RetroArch · ${core}${cores.length ? (cores.includes(core) ? '  ✓ installed' : '  (not installed)') : ''}</option>`).join('')
+      + `<option value="custom" ${c.emulator === 'custom' ? 'selected' : ''}>Standalone emulator…</option>`;
+    h += `<div class="card2" style="background:var(--bg);margin:12px 0 0;padding:14px 16px">
+      <div class="inline" style="justify-content:space-between"><b style="display:flex;align-items:center;gap:10px"><span style="width:14px;height:14px;border-radius:4px;background:${sys.color}"></span>${esc(sys.full)}<span class="pill">${(() => { const n = itemsOf('games').filter(x => x.system === c.id).length; return n ? n + ' games in last scan' : 'no games found in last scan'; })()}</span></b><button class="btn small ghost" data-emurm="${i}">Remove</button></div>
+      <div class="folders" style="margin-top:10px">${c.folders.map((f, j) => `<div class="folder"><span>${esc(f)}</span><button data-emurmf="${i}:${j}">×</button></div>`).join('') || '<div class="note">No folder yet.</div>'}</div>
+      <div class="inline"><button class="btn small" data-emuaddf="${i}">+ Folder</button><select class="sel" data-emusel="${i}" style="flex:1">${opts}</select></div>
+      ${c.emulator !== 'custom' && !e.retroarchPath ? `<div class="note" style="margin-top:6px;color:var(--bad)">RetroArch isn't set up: set it above, or choose “Standalone emulator…”.</div>` : ''}
+      ${c.emulator !== 'custom' && e.retroarchPath && cores.length && !cores.includes(c.core || sys.cores.find(x => cores.includes(x)) || sys.cores[0]) ? `<div class="note" style="margin-top:6px;color:var(--bad)">That core isn't installed: get it in RetroArch → Load Core → Download a Core.</div>` : ''}
+      <div class="note" style="margin-top:6px">Looks ${'up to 7 folders deep'} for: ${sys.exts.map(x => '.' + x).join(' ')}</div>
+      ${c.emulator === 'custom' ? `<div class="field"><label>Emulator .exe</label><div class="inline"><input class="inp" data-emuexe="${i}" value="${esc(c.customExe || '')}" placeholder="${esc((sys.standalone && sys.standalone[0] && sys.standalone[0].exe) || 'emulator.exe')}"><button class="btn small" data-emubrowse="${i}">Browse</button></div></div>
+        <div class="field"><label>Arguments</label><div><input class="inp" data-emuargs="${i}" value="${esc(c.customArgs || '"{rom}"')}"><div class="note" style="margin-top:5px">{rom} = ROM path. ${(sys.standalone || []).map(sa => `<button class="chip" data-emupreset="${i}" data-args="${esc(sa.args)}">${esc(sa.name)} preset</button>`).join(' ')}</div></div></div>` : ''}
+    </div>`;
+  }
+  return h + '</div>';
+}
+function wireEmulation(body, g, redraw) {
+  const e = g.emulation;
+  if (e.enabled && e.retroarchPath && ui.emuCoresFor !== e.retroarchPath) {
+    ui.emuCoresFor = e.retroarchPath;
+    window.api.emuCores(e.retroarchPath).then(c => { ui.emuCores = c || []; redraw(); });
+  }
+  const addSystem = (id, folder) => {
+    const sys = sysOf(id);
+    let c = e.systems.find(x => x.id === id);
+    if (!c) { c = { id, folders: [], emulator: sys.preferStandalone ? 'custom' : 'retroarch', core: '', customExe: '', customArgs: sys.standalone && sys.standalone[0] ? sys.standalone[0].args : '"{rom}"' }; e.systems.push(c); }
+    if (folder && !c.folders.includes(folder)) c.folders.push(folder);
+  };
+  const findEmus = async (quiet) => {
+    if (!quiet) toast('Searching for emulators (this can take a moment on network drives)…');
+    const r = await window.api.emuDetect(JSON.parse(JSON.stringify(e)));
+    if (!r || r.ok === false) { toast('Search failed: ' + ((r && r.error) || 'unknown error'), 'bad'); return; }
+    const found = [];
+    if (r.retroarch && r.retroarch !== e.retroarchPath) { e.retroarchPath = r.retroarch; ui.emuCores = r.cores; ui.emuCoresFor = r.retroarch; found.push(`RetroArch (${r.cores.length} cores)`); }
+    for (const c of e.systems) {
+      const sa = r.systems && r.systems[c.id];
+      if (!sa) continue;
+      const useIt = !e.retroarchPath || (sysOf(c.id).preferStandalone && c.emulator !== 'custom') || (c.emulator === 'custom' && !c.customExe);
+      if (useIt) { c.emulator = 'custom'; c.customExe = sa.exe; c.customArgs = sa.args; found.push(`${sysOf(c.id).name}: ${sa.exe.split(/[\\/]/).pop()}`); }
+    }
+    if (found.length) toast('Found ' + found.join(', '), 'ok');
+    else if (!quiet) toast(e.retroarchPath ? 'Nothing new found; your setup is unchanged.' : 'No RetroArch or standalone emulators found. Install RetroArch from retroarch.com, or browse to your emulator.', 'bad');
+    redraw();
+  };
+  if ($('#raDet')) $('#raDet').onclick = () => findEmus(false);
+  if ($('#raBrowse')) $('#raBrowse').onclick = async () => { const f = await window.api.pickFile([{ name: 'RetroArch', extensions: ['exe'] }]); if (f) { e.retroarchPath = f; ui.emuCoresFor = null; redraw(); } };
+  if ($('#emuAddRoot')) $('#emuAddRoot').onclick = async () => {
+    const picked = await window.api.pickFolders(); let n = 0; const miss = [];
+    for (const root of picked) { const found = await window.api.emuAutoAssign(root); if (found.length) found.forEach(f => { addSystem(f.id, f.folder); n++; }); else miss.push(root); }
+    if (n) toast(`Matched ${n} system folder${n > 1 ? 's' : ''}`, 'ok');
+    if (n && !e.retroarchPath) setTimeout(() => findEmus(true), 50);
+    if (miss.length) { ui.emuPending = miss; toast("Couldn't tell which system " + (miss.length > 1 ? 'some folders are' : 'that folder is') + ' — use "add a system manually", then + Folder', 'bad'); }
+    redraw();
+  };
+  if ($('#emuAddSys')) $('#emuAddSys').onchange = ev => { if (!ev.target.value) return; addSystem(ev.target.value, (ui.emuPending || []).shift()); redraw(); };
+  body.querySelectorAll('[data-emurm]').forEach(b => b.onclick = () => { e.systems.splice(+b.dataset.emurm, 1); redraw(); });
+  body.querySelectorAll('[data-emurmf]').forEach(b => b.onclick = () => { const [i, j] = b.dataset.emurmf.split(':').map(Number); e.systems[i].folders.splice(j, 1); redraw(); });
+  body.querySelectorAll('[data-emuaddf]').forEach(b => b.onclick = async () => { const c = e.systems[+b.dataset.emuaddf]; for (const f of await window.api.pickFolders()) if (!c.folders.includes(f)) c.folders.push(f); redraw(); });
+  body.querySelectorAll('[data-emusel]').forEach(sel => sel.onchange = () => { const c = e.systems[+sel.dataset.emusel]; if (sel.value === 'custom') c.emulator = 'custom'; else { c.emulator = 'retroarch'; c.core = sel.value.slice(3); } redraw(); });
+  body.querySelectorAll('[data-emuexe]').forEach(i => i.oninput = () => { e.systems[+i.dataset.emuexe].customExe = i.value.trim(); });
+  body.querySelectorAll('[data-emuargs]').forEach(i => i.oninput = () => { e.systems[+i.dataset.emuargs].customArgs = i.value; });
+  body.querySelectorAll('[data-emubrowse]').forEach(b => b.onclick = async () => { const f = await window.api.pickFile([{ name: 'Emulator', extensions: ['exe'] }]); if (f) { e.systems[+b.dataset.emubrowse].customExe = f; redraw(); } });
+  body.querySelectorAll('[data-emupreset]').forEach(b => b.onclick = () => { e.systems[+b.dataset.emupreset].customArgs = b.dataset.args; redraw(); });
+}
+
+/* ============================== updates ============================== */
+let updState = null;
+function updText(u) {
+  if (!u) return '';
+  const v = 'OmniLauncher ' + u.current;
+  if (!u.installed) return `${v} (portable). Automatic updates work in the installed version; get the latest setup from github.com/MagnusPerditor/omnilauncher/releases.`;
+  return v + ' · ' + ({ idle: 'Waiting to check', checking: 'Checking for updates…', current: 'You’re up to date', available: `Version ${u.version} is available`, downloading: `Downloading ${u.version || 'update'}… ${u.percent || 0}%`, ready: `Version ${u.version} is ready to install`, error: 'Update check failed: ' + (u.error || 'unknown error') }[u.state] || u.state);
+}
+function paintUpdates() {
+  const u = updState;
+  const b = $('#updBtn');
+  if (b) { if (u && u.state === 'ready') { b.style.display = ''; b.textContent = `↻ Restart to update (${u.version})`; b.onclick = () => window.api.updateInstall(); } else b.style.display = 'none'; }
+  if ($('#updLine')) {
+    $('#updLine').textContent = updText(u);
+    $('#updNow').style.display = u && u.state === 'ready' ? '' : 'none';
+    $('#updDl').style.display = u && u.state === 'available' ? '' : 'none';
+    $('#updCheck').disabled = !u || !u.installed || u.state === 'checking' || u.state === 'downloading';
+  }
+}
+function wireUpdates() {
+  if (!window.api.updateInfo) return;
+  window.api.updateInfo().then(u => { updState = u; paintUpdates(); });
+  $('#updCheck').onclick = () => window.api.updateCheck().then(r => r && r.ok === false && toast(r.error, 'bad'));
+  $('#updNow').onclick = () => window.api.updateInstall();
+  $('#updDl').onclick = () => window.api.updateDownload();
+}
+if (window.api && window.api.onUpdate) window.api.onUpdate(u => {
+  const was = updState && updState.state;
+  updState = u; paintUpdates();
+  if (u.state === 'ready' && was !== 'ready') toast(`OmniLauncher ${u.version} is ready. Restart to update.`, 'ok');
+});
+
+/* ============================== scanning ============================== */
+async function rescan(only) {
+  if (ui.scanning) return;
+  ui.scanning = true; renderNav();
+  $('#scanStatus').innerHTML = 'Starting scan…<div class="bar"><i></i></div>';
+  try { lib = await window.api.rescan(only); }
+  catch (e) { toast('Scan failed: ' + e.message, 'bad'); }
+  ui.scanning = false;
+  const n = CATS.reduce((s, c) => s + itemsOf(c.id).length, 0);
+  $('#scanStatus').textContent = `${n} items · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  if (ui.view !== 'setup') render(); else renderNav();
+}
+window.api && window.api.onProgress(p => {
+  if (p.cat === 'done') { $('#scanStatus').textContent = 'Library updated · ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); return; }
+  const pct = p.total ? Math.round(p.done / p.total * 100) : 15;
+  $('#scanStatus').innerHTML = `${esc(CAT[p.cat] ? CAT[p.cat].label + ': ' : '')}${esc(p.msg)}${p.total ? ` ${p.done}/${p.total}` : ''}<div class="bar"><i style="width:${pct}%"></i></div>`;
+});
+
+/* ============================== controller / couch mode ============================== */
+const NAV_SEL = 'button:not([disabled]), .card, .tile, input:not([type=hidden]):not([type=checkbox]), select, label.tog:not(.dis), [data-tr].frow';
+const nav = { mode: false, couch: false, held: {}, osk: null, lastFocus: null, autoDone: false };
+const shown = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+function navRoot() {
+  if (nav.osk) return $('#osk');
+  if ($('#tmenu').classList.contains('on')) return $('#tmenu');
+  if ($('#detail').classList.contains('on')) return $('#detail');
+  return document.body;
+}
+function navCandidates() {
+  const root = navRoot();
+  let els = [...root.querySelectorAll(NAV_SEL)].filter(shown);
+  if (root === document.body) els = els.filter(e => !$('#detail').contains(e) && !$('#osk').contains(e) && !(e.closest('#ab') && !$('#ab').classList.contains('on')));
+  return els.filter(e => !e.closest('.card') || e.classList.contains('card')); // a card is one stop
+}
+function focusEl(e) {
+  if (!e) return;
+  e.focus({ preventScroll: true });
+  e.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+}
+function defaultFocus() {
+  const root = navRoot();
+  if (root === $('#osk')) return $('#osk .k');
+  if (root === $('#detail')) return $('#dActions button') || [...$('#detail').querySelectorAll(NAV_SEL)].find(shown);
+  return $('#view .card') || $('#view .tile') || $('#heroGo') || [...$('#view').querySelectorAll(NAV_SEL)].find(shown) || document.querySelector('#nav button.on');
+}
+function navMove(dir) {
+  enterNavMode();
+  const root = navRoot();
+  const cur = document.activeElement;
+  if (!cur || cur === document.body || !root.contains(cur) || !shown(cur)) return focusEl(defaultFocus());
+  const a = cur.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+  let best = null, bs = Infinity;
+  const region = e => e.closest('#side') ? 'side' : e.closest('#ab') ? 'player' : 'main';
+  const curRegion = region(cur);
+  for (const e of navCandidates()) {
+    if (e === cur) continue;
+    if ((dir === 'up' || dir === 'down') && region(e) !== curRegion && !(curRegion === 'player' && dir === 'up') && !(region(e) === 'player' && dir === 'down' && curRegion === 'main')) continue;
+    const b = e.getBoundingClientRect(), bx = b.left + b.width / 2, by = b.top + b.height / 2;
+    let main, ortho;
+    if (dir === 'right') { if (bx <= ax + 2 || b.left < a.left + 4) continue; main = Math.max(0, b.left - a.right); ortho = Math.max(0, b.top - a.bottom, a.top - b.bottom); }
+    else if (dir === 'left') { if (bx >= ax - 2 || b.right > a.right - 4) continue; main = Math.max(0, a.left - b.right); ortho = Math.max(0, b.top - a.bottom, a.top - b.bottom); }
+    else if (dir === 'down') { if (by <= ay + 2 || b.top < a.top + 4) continue; main = Math.max(0, b.top - a.bottom); ortho = Math.max(0, b.left - a.right, a.left - b.right); }
+    else { if (by >= ay - 2 || b.bottom > a.bottom - 4) continue; main = Math.max(0, a.top - b.bottom); ortho = Math.max(0, b.left - a.right, a.left - b.right); }
+    const score = main + ortho * 4 + Math.hypot(bx - ax, by - ay) * 0.05;
+    if (score < bs) { bs = score; best = e; }
+  }
+  if (best && curRegion === 'main' && region(best) === 'side') best = document.querySelector('#nav button.on, #nav2 button.on') || best;
+  if (best && curRegion === 'side' && region(best) === 'main' && (dir === 'right')) best = $('#view .card') || best;
+  if (best) focusEl(best);
+}
+function navActivate() {
+  const e = document.activeElement;
+  if (!e || e === document.body) return focusEl(defaultFocus());
+  if (e.tagName === 'SELECT') { e.selectedIndex = (e.selectedIndex + 1) % e.options.length; e.dispatchEvent(new Event('change', { bubbles: true })); return; }
+  if (e.tagName === 'INPUT' && e.type !== 'range') { if (nav.couch || e.id === 'q') openOsk(e); return; }
+  e.click();
+}
+function navBack() {
+  if (nav.osk) return closeOsk();
+  if ($('#tmenu').classList.contains('on')) { $('#tmenu').classList.remove('on'); return focusEl(document.querySelector('.tile')); }
+  if ($('#detail').classList.contains('on')) {
+    closeDetail();
+    const lf = nav.lastFocus; if (lf && document.contains(lf) && shown(lf)) focusEl(lf); else focusEl(defaultFocus());
+    return;
+  }
+  if (ui.q) { ui.q = ''; $('#q').value = ''; render(); return; }
+  if (ui.view === 'games' && ui.gamesView && !$('#side').contains(document.activeElement)) return $('#gBack').click();
+  if (!$('#side').contains(document.activeElement)) return focusEl(document.querySelector(`#nav button[data-v="${ui.view}"], #nav2 button[data-v="${ui.view}"]`) || document.querySelector('#nav button'));
+  if (ui.view !== 'home') go('home');
+}
+function navCycle(step) {
+  const views = ['home', ...CATS.filter(c => cfg.categories[c.id] && cfg.categories[c.id].enabled).map(c => c.id)];
+  const i = views.indexOf(ui.view);
+  go(views[(i < 0 ? 0 : i + step + views.length) % views.length]);
+  setTimeout(() => focusEl(defaultFocus()), 30);
+}
+function navScroll(dir) {
+  const box = $('#detail').classList.contains('on') ? $('#sheet') : $('#view');
+  box.scrollBy({ top: dir * box.clientHeight * 0.8, behavior: 'smooth' });
+  setTimeout(() => {
+    const r = box.getBoundingClientRect();
+    const inView = navCandidates().filter(e => box.contains(e)).find(e => { const b = e.getBoundingClientRect(); return b.top >= r.top && b.bottom <= r.bottom; });
+    if (inView) inView.focus({ preventScroll: true });
+  }, 350);
+}
+function navPlay() {
+  const ft = document.activeElement && document.activeElement.closest && document.activeElement.closest('.tile');
+  if (ft) { const r = ft.getBoundingClientRect(); return tileMenu(ft.dataset.col, r.left + 20, r.top + 20); }
+  if ($('#ab').classList.contains('on') && !$('#detail').classList.contains('on')) return audio.paused ? audio.play() : audio.pause();
+  const p = ($('#detail').classList.contains('on') ? $('#dActions .btn.primary') : null);
+  if (p) return p.click();
+  const c = document.activeElement && document.activeElement.closest && document.activeElement.closest('.card');
+  if (c) c.click();
+}
+function enterNavMode() { if (!nav.mode) { nav.mode = true; document.body.classList.add('navmode'); } }
+function exitNavMode() { if (nav.mode) { nav.mode = false; document.body.classList.remove('navmode'); } }
+async function setCouch(on) {
+  nav.couch = on;
+  document.body.classList.toggle('couch', on);
+  window.api.setZoom(on ? ((cfg.couch && cfg.couch.scale) || 1.25) : 1);
+  window.api.setFullScreen(on);
+  if (on) { enterNavMode(); setTimeout(() => focusEl(defaultFocus()), 150); }
+}
+// --- on-screen keyboard (for search with a controller) ---
+const OSK_ROWS = ['1234567890', 'qwertyuiop', "asdfghjkl'", 'zxcvbnm-.&'];
+function openOsk(input) {
+  nav.osk = input;
+  $('#oskVal').textContent = input.value;
+  $('#oskRows').innerHTML = OSK_ROWS.map(r => `<div class="r">${[...r].map(ch => `<button class="k" data-ch="${esc(ch)}">${esc(ch)}</button>`).join('')}</div>`).join('') +
+    `<div class="r"><button class="k w" data-op="space">Space</button><button class="k w" data-op="bksp">⌫ Delete</button><button class="k w" data-op="clear">Clear</button><button class="k w" data-op="done">Done</button></div>`;
+  $('#osk').classList.add('on');
+  $('#oskRows').querySelectorAll('button').forEach(b => b.onclick = () => {
+    let v = input.value;
+    if (b.dataset.ch) v += b.dataset.ch; else if (b.dataset.op === 'space') v += ' '; else if (b.dataset.op === 'bksp') v = v.slice(0, -1); else if (b.dataset.op === 'clear') v = ''; else return closeOsk();
+    input.value = v; $('#oskVal').textContent = v; input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  enterNavMode();
+  focusEl($('#oskRows button[data-ch="a"]'));
+}
+function closeOsk() {
+  const input = nav.osk; nav.osk = null; $('#osk').classList.remove('on');
+  setTimeout(() => focusEl($('#view .card') || input), 250);
+}
+// --- gamepad polling ---
+const BTN = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, view: 8, start: 9, up: 12, down: 13, left: 14, right: 15 };
+const REPEAT = new Set(['up', 'down', 'left', 'right', 'lt', 'rt']);
+function padState() {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(p => p && p.connected) : [];
+  if (!pads.length) return null;
+  const st = {};
+  for (const [k, i] of Object.entries(BTN)) st[k] = pads.some(p => p.buttons[i] && (p.buttons[i].pressed || p.buttons[i].value > 0.5));
+  for (const p of pads) {
+    const x = p.axes[0] || 0, y = p.axes[1] || 0;
+    if (Math.abs(x) > 0.55 && Math.abs(x) > Math.abs(y)) st[x > 0 ? 'right' : 'left'] = true;
+    if (Math.abs(y) > 0.55 && Math.abs(y) >= Math.abs(x)) st[y > 0 ? 'down' : 'up'] = true;
+  }
+  return st;
+}
+function padAction(k) {
+  if (!nav.mode) enterNavMode();
+  if (!nav.couch && !nav.autoDone && cfg.couch && cfg.couch.autoOnController) { nav.autoDone = true; setCouch(true); if (k !== 'start') return; }
+  if (k === 'start') { nav.autoDone = true; return setCouch(!nav.couch); }
+  if (nav.osk && k === 'x') return $('#oskRows [data-op=bksp]').click();
+  if (nav.osk && k === 'y') return $('#oskRows [data-op=space]').click();
+  ({ up: () => navMove('up'), down: () => navMove('down'), left: () => navMove('left'), right: () => navMove('right'),
+     a: navActivate, b: navBack, x: navPlay, y: () => openOsk($('#q')), lb: () => navCycle(-1), rb: () => navCycle(1),
+     lt: () => navScroll(-1), rt: () => navScroll(1), view: () => { go('setup'); setTimeout(() => focusEl(defaultFocus()), 30); } }[k] || (() => {}))();
+}
+function pollPads() {
+  requestAnimationFrame(pollPads);
+  const st = document.hasFocus() ? padState() : null; // ignore the pad while a game/player window has focus
+  const now = performance.now();
+  if (!st) { nav.held = {}; return; }
+  for (const k of Object.keys(BTN)) {
+    const h = nav.held[k];
+    if (st[k] && !h) { nav.held[k] = { t: now, next: now + 380 }; padAction(k); }
+    else if (st[k] && h && REPEAT.has(k) && now >= h.next) { h.next = now + (k === 'lt' || k === 'rt' ? 300 : 110); padAction(k); }
+    else if (!st[k] && h) delete nav.held[k];
+  }
+}
+requestAnimationFrame(pollPads);
+window.addEventListener('gamepadconnected', e => {
+  toast(`Controller connected${cfg && cfg.couch && cfg.couch.autoOnController && !nav.couch ? ' — press any button for couch mode' : ' — press Start/☰ for couch mode'}`, 'ok');
+});
+// keyboard: arrows navigate, F10 toggles couch mode
+document.addEventListener('keydown', e => {
+  if (nav.osk && !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'].includes(e.key)) { closeOsk(); return; }
+  if (e.key === 'F10') { e.preventDefault(); return setCouch(!nav.couch); }
+  const t = document.activeElement, typing = t && (t.tagName === 'INPUT' && t.type !== 'checkbox' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA');
+  const dirs = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+  if (dirs[e.key] && (!typing || nav.osk)) { e.preventDefault(); return navMove(dirs[e.key]); }
+  if (e.key === 'Enter' && t && (t.matches('label.tog, .frow[data-tr], .tile') || nav.osk)) { e.preventDefault(); t.click(); }
+  if (e.key === 'Escape' && nav.osk) { e.stopImmediatePropagation(); closeOsk(); }
+}, true);
+document.addEventListener('mousemove', () => { if (nav.mode && !nav.couch) exitNavMode(); });
+document.addEventListener('mousedown', () => { if (nav.mode && !nav.couch) exitNavMode(); });
+// keep focus sensible across re-renders and detail sheets
+const _render = render;
+render = function () { _render(); if (nav.mode && !nav.osk) { const a = document.activeElement; if (!a || a === document.body || !document.contains(a) || !shown(a)) focusEl(defaultFocus()); } };
+const _openDetail = openDetail;
+openDetail = async function (cat, id) { nav.lastFocus = document.activeElement; await _openDetail(cat, id); if (nav.mode) setTimeout(() => focusEl(defaultFocus()), 20); };
+
+/* ============================== boot ============================== */
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#q').focus(); }
+  if (e.key === 'Escape') { if ($('#detail').classList.contains('on')) closeDetail(); else if (ui.q) { ui.q = ''; $('#q').value = ''; render(); } }
+  if (e.key === ' ' && $('#ab').classList.contains('on') && !/INPUT|SELECT|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); audio.paused ? audio.play() : audio.pause(); }
+});
+let qT;
+$('#q').addEventListener('input', e => { clearTimeout(qT); qT = setTimeout(() => { ui.q = e.target.value.trim(); closeDetail(); render(); $('#view').scrollTop = 0; }, 160); });
+$('#detail').addEventListener('click', e => { if (e.target.id === 'detail') closeDetail(); });
+
+async function boot() {
+  [cfg, lib, ust, catalog, emuSys, tileArt] = await Promise.all([window.api.getConfig(), window.api.getLibrary(), window.api.getState(), window.api.catalog(), window.api.emuSystems ? window.api.emuSystems() : [], window.api.tilesList ? window.api.tilesList() : {}]);
+  if (!cfg.setupDone) { ui.view = 'setup'; ui.setupTab = 'general'; }
+  if (window.api.updateInfo) window.api.updateInfo().then(u => { updState = u; paintUpdates(); }).catch(() => {});
+  if (window.api.tilesBundled) { try { BUNDLED_TILES = { ...BUNDLED_TILES, ...(await window.api.tilesBundled()) }; } catch {} }
+  if (cfg.setupDone && cfg.couch && cfg.couch.startInCouch) setCouch(true);
+  if (lib.updated) $('#scanStatus').textContent = 'Last scan ' + new Date(lib.updated).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  render();
+  if (cfg.setupDone && Date.now() - (lib.updated || 0) > 6 * 3.6e6) rescan();
+}
+if (window.api) boot();
+else { const s = document.createElement('script'); s.src = '../test/mock-api.js'; s.onload = () => { window.api.onProgress(() => {}); boot(); }; document.head.appendChild(s); }
+</script>
+</body>
+</html>

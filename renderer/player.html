@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Player</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;color:#ddd;font:14px system-ui,Segoe UI,sans-serif;overflow:hidden}
+  video{width:100%;height:100%;background:#000}
+  #err{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:40px;line-height:1.6}
+  #err b{color:#fff;font-size:18px}
+</style></head>
+<body>
+<video id="v" controls autoplay></video>
+<div id="err"><div><b>This file can't play in the built-in player.</b><br>
+Chromium can't decode some formats (often HEVC/x265, DTS or TrueHD audio).<br>
+Set VLC or mpv as your player in Library Setup → General and try again.</div></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const v = document.getElementById('v');
+  document.title = q.get('title') || 'Player';
+  v.src = q.get('src');
+  v.addEventListener('error', () => { document.getElementById('err').style.display = 'flex'; v.style.display = 'none'; });
+  addEventListener('keydown', e => {
+    if (e.key === ' ') { e.preventDefault(); v.paused ? v.play() : v.pause(); }
+    if (e.key === 'ArrowRight') v.currentTime += 10;
+    if (e.key === 'ArrowLeft') v.currentTime -= 10;
+    if (e.key === 'f') document.fullscreenElement ? document.exitFullscreen() : v.requestFullscreen();
+    if (e.key === 'Escape' && !document.fullscreenElement) window.close();
+  });
+</script>
+</body></html>
