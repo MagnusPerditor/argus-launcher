@@ -44,6 +44,22 @@ Hit **Save & Scan**. The library rescans on its own when it's more than 6 hours 
 - **Music:** albums are built from MP3 (ID3) and FLAC tags, falling back to `Artist\Album\01 - Track` folder names; CD1/CD2 folders merge into one album. Art comes from cover.jpg/folder.jpg, embedded art, then MusicBrainz / Cover Art Archive. Plays in the built-in player with a queue and shuffle.
 - **Audiobooks:** built-in player with resume position, speed control, ±30 s and track skipping.
 
+## Screenshots
+
+<img width="2560" height="1392" alt="Home" src="https://github.com/user-attachments/assets/fbcbdb17-37e4-43a0-8050-a851467fb638" />
+
+<img width="2560" height="1392" alt="Movies" src="https://github.com/user-attachments/assets/5f2cf4b8-53fa-4bf2-83a4-ca8f17ba0a4d" />
+
+<img width="2560" height="1392" alt="Music" src="https://github.com/user-attachments/assets/bff7c935-76d6-48f4-9204-5b896e7084ca" />
+
+<img width="2560" height="1392" alt="Games" src="https://github.com/user-attachments/assets/fc0083f9-2aa3-43b7-9ec7-93490e032015" />
+
+<img width="2560" height="1392" alt="XboxGamePass" src="https://github.com/user-attachments/assets/9587da95-da1b-4f27-99a0-f808588ecb1f" />
+
+
+
+
+
 ## Controller / couch mode
 
 Pick up a controller (Xbox, PlayStation, or most others Windows sees) and Argus Launcher switches to **couch mode**: full screen, scaled up, cursor hidden, with a button legend along the bottom. Toggle it with **Start/☰** or **F10**. Options are in Library Setup → General (start in couch mode, auto-switch on controller, 100–175% size).
