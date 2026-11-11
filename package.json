@@ -54,7 +54,7 @@
         "provider": "github",
         "owner": "MagnusPerditor",
         "repo": "argus-launcher",
-        "releaseType": "release"
+        "releaseType": "draft"
       }
     ],
     "directories": {
