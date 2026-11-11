@@ -1,5 +1,6 @@
 # Builds the Windows installer and publishes it as a GitHub Release.
-# Triggered by pushing a version tag, e.g.:  git tag v1.1.0 && git push origin v1.1.0
+# Triggered by pushing a version tag (git tag v1.2.0 && git push origin v1.2.0), or run it by hand from
+# the Actions tab (Release -> Run workflow): it then tags the current package.json version itself.
 # The tag must match "version" in package.json. Installed copies of Argus Launcher
 # pick the new release up automatically (electron-updater reads latest.yml from the release).
 name: Release
@@ -46,6 +47,19 @@ jobs:
           fi
 
       - run: npm ci
+
+      - name: Create version tag (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          TAG="v$(node -p "require('./package.json').version")"
+          if git ls-remote --exit-code --tags origin "$TAG" >/dev/null; then
+            echo "Tag $TAG already exists"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG" && git push origin "$TAG"
+          fi
 
       - name: Build installer and publish release
         run: npx electron-builder --win nsis --publish always

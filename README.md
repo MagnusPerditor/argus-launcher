@@ -99,5 +99,5 @@ Installed copies check for updates at startup and every 6 hours, download them i
 ### Publishing a new version
 
 1. Bump `"version"` in `package.json` (e.g. `1.1.0` → `1.2.0`) and commit.
-2. Tag and push: `git tag v1.2.0 && git push origin main v1.2.0`
+2. Push to `main`, then either push a tag (`git tag v1.2.0 && git push origin v1.2.0`) or open **Actions → Release → Run workflow** on GitHub (it tags the version for you).
 3. GitHub Actions (`.github/workflows/release.yml`) builds the installer on Windows, runs the tests, and publishes the Release. Everyone's copy updates itself.
