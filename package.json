@@ -1,7 +1,7 @@
 {
   "name": "argus-launcher",
   "productName": "Argus Launcher",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Argus Launcher: all-in-one media launcher for movies, TV, music, music videos, books, audiobooks and games",
   "main": "main.js",
   "author": "Geletka Tech",
@@ -46,7 +46,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Argus Launcher",
       "artifactName": "ArgusLauncher-Setup-${version}.${ext}",
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
     },
     "publish": [
       {
@@ -55,7 +56,10 @@
         "repo": "argus-launcher",
         "releaseType": "release"
       }
-    ]
+    ],
+    "directories": {
+      "buildResources": "build"
+    }
   },
   "dependencies": {
     "electron-updater": "^6.8.11"
