@@ -1,17 +1,17 @@
-# OmniLauncher
+# Argus Launcher
 
 All-in-one media launcher for Windows: **Movies, TV, Music, Music Videos, Books, Audiobooks and Games** in one library.
 
 ## Run it
 
-**Portable:** unzip `OmniLauncher-portable-win-x64.zip` anywhere and run `OmniLauncher.exe`.
+**Portable:** unzip `ArgusLauncher-portable-win-x64.zip` anywhere and run `ArgusLauncher.exe`.
 
 **Installer / from source** (needs Node.js 20+):
 
 ```
 npm install
 npm start            # run in dev
-npm run dist         # builds dist\OmniLauncher Setup 1.0.0.exe (NSIS installer)
+npm run dist         # builds dist\ArgusLauncher-Setup-x.y.z.exe (NSIS installer)
 npm test             # parser + scanner tests
 ```
 
@@ -34,10 +34,10 @@ Hit **Save & Scan**. The library rescans on its own when it's more than 6 hours 
 
 - **Scrapers:** TMDB gives posters, backdrops, ratings, cast, episode titles/stills and *where it's streaming* in your region. OMDb is the alternative/fallback. Results are cached (14 days; misses retried after 3).
 - **Streaming services:** Each movie/show shows **Streaming on your services** (matched from TMDB/JustWatch data) with a button that opens that service's search for the title, plus search buttons for your other services. Plex and Jellyfin take your server URL; you can add custom services (home URL + search URL with `{q}`).
-- **TorBox:** Torrents, usenet and web downloads are classified automatically (S01E02 names → TV, other video → Movies, M4B or “audiobook / unabridged / chapter” audio → Audiobooks, other audio → Music, EPUB/PDF → Books, repacks/ISOs/installers → Games). Wrong guess? Use *Move this TorBox item to…* on the detail page. Videos stream to VLC/mpv (or the built-in player); books download to `Downloads\OmniLauncher` and open; audiobooks stream in the built-in player; games open the download link.
+- **TorBox:** Torrents, usenet and web downloads are classified automatically (S01E02 names → TV, other video → Movies, M4B or “audiobook / unabridged / chapter” audio → Audiobooks, other audio → Music, EPUB/PDF → Books, repacks/ISOs/installers → Games). Wrong guess? Use *Move this TorBox item to…* on the detail page. Videos stream to VLC/mpv (or the built-in player); books download to `Downloads\Argus Launcher` and open; audiobooks stream in the built-in player; games open the download link.
 - **Games:** the Games page opens on collection tiles (PC Library, Game Pass, Cloud Gaming, PS Plus, TorBox, and one per retro system), each a collage of its own box art with a count. Pick one to browse it with its own filter box, launcher chips (PC) and sorting; ‹ or B goes back.
   - Steam → `steam://rungameid`, Epic → launcher URI, GOG → Galaxy (or the exe directly), Ubisoft → `uplay://`, Xbox app games → their AppX ID.
-  - **Game Pass:** the live PC + Cloud catalogs for your region. Installed ones launch directly; others offer *Install in Xbox app* and/or *Play in Cloud* (default browser or an OmniLauncher window; F11 = fullscreen).
+  - **Game Pass:** the live PC + Cloud catalogs for your region. Installed ones launch directly; others offer *Install in Xbox app* and/or *Play in Cloud* (default browser or an Argus Launcher window; F11 = fullscreen).
   - **PS Plus:** Sony has no public catalog or per-game launch links, so you add the titles you play; each opens the PlayStation Plus PC app. *Auto-detect* finds the app.
   - **Emulation / retro games:** Library Setup → Games → Emulation. *Auto-detect* finds RetroArch (C:\RetroArch-Win64, AppData, Program Files, Scoop, Steam). *Add ROM folder* matches folders named after systems (`SNES`, `Mega Drive`, `PS1`, or the full libretro names), and a parent folder with one subfolder per system is split automatically. Each system plays through a RetroArch core (installed ones are marked ✓) or a standalone emulator with an argument template (`{rom}`; presets for Dolphin, PCSX2, DuckStation, PPSSPP, melonDS, Project64). Supported: NES, SNES, N64, GB/GBC/GBA, DS, GameCube, Wii, Genesis, Master System, Game Gear, 32X, Sega CD, Saturn, Dreamcast, PS1, PS2, PSP, TurboGrafx-16, Atari 2600, Arcade. Multi-disc games collapse to one entry (`.m3u` preferred, else Disc 1), and `.bin` tracks behind a `.cue` are hidden. Box art comes from the libretro thumbnail server and matches No-Intro/Redump file names. Use the **Retro** filter and the **All systems** dropdown on the Games page.
   - **Game folders:** each subfolder = one game (main .exe picked automatically; installers, redists and crash handlers skipped). A folder of `.lnk`/`.url` shortcuts also works.
@@ -46,7 +46,7 @@ Hit **Save & Scan**. The library rescans on its own when it's more than 6 hours 
 
 ## Controller / couch mode
 
-Pick up a controller (Xbox, PlayStation, or most others Windows sees) and OmniLauncher switches to **couch mode**: full screen, scaled up, cursor hidden, with a button legend along the bottom. Toggle it with **Start/☰** or **F10**. Options are in Library Setup → General (start in couch mode, auto-switch on controller, 100–175% size).
+Pick up a controller (Xbox, PlayStation, or most others Windows sees) and Argus Launcher switches to **couch mode**: full screen, scaled up, cursor hidden, with a button legend along the bottom. Toggle it with **Start/☰** or **F10**. Options are in Library Setup → General (start in couch mode, auto-switch on controller, 100–175% size).
 
 | Button | Action |
 |---|---|
@@ -72,7 +72,7 @@ Input is ignored while another window (a game, VLC) has focus. Arrow keys + Ente
 
 ## Data
 
-Settings, library cache and covers live in `%APPDATA%\OmniLauncher` (`config.json`, `library.json`, `metacache.json`, `state.json`, `cache\`). Delete `library.json` + `metacache.json` to force a clean rescan.
+Settings, library cache and covers live in `%APPDATA%\Argus Launcher` (`config.json`, `library.json`, `metacache.json`, `state.json`, `cache\`). Delete `library.json` + `metacache.json` to force a clean rescan.
 
 ## Files
 
@@ -92,7 +92,7 @@ renderer/          UI (index.html) and built-in video player
 
 ## Installing & updates
 
-Download **OmniLauncher-Setup-x.y.z.exe** from [Releases](https://github.com/MagnusPerditor/omnilauncher/releases) and run it. It installs per-user (no admin prompt) to `%LOCALAPPDATA%\Programs\OmniLauncher`; your settings in `%APPDATA%\OmniLauncher` carry over from the portable version.
+Download **ArgusLauncher-Setup-x.y.z.exe** from [Releases](https://github.com/MagnusPerditor/argus-launcher/releases) and run it. It installs per-user (no admin prompt) to `%LOCALAPPDATA%\Programs\Argus Launcher`; settings from the earlier OmniLauncher builds (`%APPDATA%\OmniLauncher`) are copied over automatically on first launch.
 
 Installed copies check for updates at startup and every 6 hours, download them in the background, and install when you close the app (or right away via **Restart & install** in Library Setup → General, or the button in the sidebar). The portable zip doesn't auto-update.
 

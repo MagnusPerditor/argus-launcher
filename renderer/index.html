@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src * file: data: blob:; media-src * file: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src *">
-<title>OmniLauncher</title>
+<title>Argus Launcher</title>
 <style>
 :root{
   --bg:#0b0d12; --bg2:#11141b; --panel:#161a23; --panel2:#1c2130; --line:#262c3b; --text:#e9ecf3; --dim:#8b93a7; --faint:#5b6377;
@@ -23,8 +23,7 @@ a{color:var(--accent)}
 /* ---------- sidebar ---------- */
 #side{background:linear-gradient(180deg,#0e1118,#0a0c11);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 22px;font-family:"Segoe UI Variable Display","Segoe UI",system-ui;font-weight:700;font-size:19px;letter-spacing:.2px}
-.brand .logo{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 200deg,var(--c-movies),var(--c-musicvideos),var(--c-audiobooks),var(--c-tv),var(--c-books),var(--c-games),var(--c-movies));display:grid;place-items:center}
-.brand .logo::after{content:"";width:12px;height:12px;border-radius:3px;background:var(--bg)}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:url(logo.png) center/cover}
 .nav{display:flex;flex-direction:column;gap:2px}
 .nav button{display:flex;align-items:center;gap:12px;background:none;border:0;padding:10px 12px;border-radius:10px;color:var(--dim);text-align:left;font-size:14.5px;position:relative}
 .nav button svg{width:20px;height:20px;flex:none}
@@ -280,7 +279,7 @@ body.couch #view{padding-bottom:150px}
 <body>
 <div id="app">
   <aside id="side">
-    <div class="brand"><div class="logo"></div>OmniLauncher</div>
+    <div class="brand"><div class="logo"></div>Argus</div>
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
       <div class="side-sep"></div>
@@ -1053,7 +1052,7 @@ function renderSetup() {
   if (!ui.draft) ui.draft = JSON.parse(JSON.stringify(cfg));
   const d = ui.draft;
   let html = `<div class="setup"><h1 class="cat">Library Setup</h1><div class="sub">Folders, streaming services, scrapers, TorBox and game platforms — per category.</div>`;
-  if (!cfg.setupDone) html += `<div class="welcome"><b>Welcome to OmniLauncher.</b><br>Start on <i>General</i> with your API keys (TMDB for movie/TV metadata, TorBox if you use it), then go tab by tab. Hit <b>Save &amp; Scan</b> when you're done — you can come back any time.</div>`;
+  if (!cfg.setupDone) html += `<div class="welcome"><b>Welcome to Argus Launcher.</b><br>Start on <i>General</i> with your API keys (TMDB for movie/TV metadata, TorBox if you use it), then go tab by tab. Hit <b>Save &amp; Scan</b> when you're done — you can come back any time.</div>`;
   html += `<div class="tabs">${SETUP_TABS.map(([id, l, c]) => `<button data-tab="${id}" class="${ui.setupTab === id ? 'on' : ''}" style="--tc:var(--c-${c})">${l}</button>`).join('')}</div><div id="setupBody" style="--tc:var(--c-${ui.setupTab === 'general' ? 'setup' : ui.setupTab})"></div>
     <div class="savebar"><button class="btn" id="sCancel">Discard changes</button><button class="btn" id="sSave">Save</button><button class="btn primary" style="--cc:var(--accent)" id="sScan">${svg(ICON.scan, 16)} Save &amp; Scan</button></div></div>`;
   $('#view').innerHTML = html;
@@ -1098,11 +1097,11 @@ function setupGeneral(body, d) {
     <div class="note">With “Windows default app”, TorBox streams fall back to the built-in player.</div>
   </div>
   <div class="card2" id="updCard"><h3>Updates</h3><div class="sub" id="updLine">Checking…</div>
-    ${tog('updates.auto', 'Download updates automatically', d.updates.auto !== false, 'They install when you close OmniLauncher, or right away with “Restart &amp; install”.')}
+    ${tog('updates.auto', 'Download updates automatically', d.updates.auto !== false, 'They install when you close Argus Launcher, or right away with “Restart &amp; install”.')}
     <div class="actions" style="margin:10px 0 0"><button class="btn small" id="updCheck">Check for updates</button><button class="btn small primary" id="updNow" style="display:none;--cc:var(--ok)">Restart &amp; install</button><button class="btn small" id="updDl" style="display:none">Download update</button></div>
   </div>
   <div class="card2"><h3>Couch mode &amp; controller</h3><div class="sub">Full-screen, bigger, controller-driven. Toggle any time with <b>Start/☰</b> on the controller or <b>F10</b>.</div>
-    ${tog('couch.startInCouch', 'Start OmniLauncher in couch mode', d.couch.startInCouch)}
+    ${tog('couch.startInCouch', 'Start Argus Launcher in couch mode', d.couch.startInCouch)}
     ${tog('couch.autoOnController', 'Switch to couch mode when I pick up a controller', d.couch.autoOnController)}
     <div class="field"><label>Couch mode size</label><div class="inline">${[1, 1.25, 1.5, 1.75].map(z => `<button class="chip ${d.couch.scale === z ? 'on' : ''}" data-zoom="${z}">${Math.round(z * 100)}%</button>`).join('')}</div></div>
     <div class="note">Controls: D-pad / left stick move · A select · B back · X play · Y search · LB/RB switch category · LT/RT scroll · View/Back opens Library Setup.</div>
@@ -1225,8 +1224,8 @@ function setupGames(body, d) {
   <div class="card2"><h3>Xbox Game Pass</h3><div class="sub">Pulls the current Game Pass catalog for your region. Installed titles launch directly; others open in the Xbox app or Xbox Cloud Gaming.</div>
     ${tog('categories.games.gamepass.enabled', 'Include Xbox Game Pass', g.gamepass.enabled)}
     ${g.gamepass.enabled ? `<div class="subgrid">${tog('categories.games.gamepass.catalogs.pc', 'PC Game Pass catalog', g.gamepass.catalogs.pc)}${tog('categories.games.gamepass.catalogs.cloud', 'Cloud Gaming catalog', g.gamepass.catalogs.cloud, 'Needs Game Pass Ultimate')}</div>
-      <div class="field"><label>Open cloud games in</label><div class="inline">${[['browser', 'Default browser'], ['window', 'OmniLauncher window']].map(([k, l]) => `<button class="chip ${g.gamepass.cloudMode === k ? 'on' : ''}" data-cm="${k}">${l}</button>`).join('')}</div></div>
-      <div class="note">In an OmniLauncher window you sign in to xbox.com once; press F11 for full screen.</div>` : ''}
+      <div class="field"><label>Open cloud games in</label><div class="inline">${[['browser', 'Default browser'], ['window', 'Argus Launcher window']].map(([k, l]) => `<button class="chip ${g.gamepass.cloudMode === k ? 'on' : ''}" data-cm="${k}">${l}</button>`).join('')}</div></div>
+      <div class="note">In an Argus Launcher window you sign in to xbox.com once; press F11 for full screen.</div>` : ''}
   </div>
   <div class="card2"><h3>PlayStation Plus (cloud streaming)</h3><div class="sub">Requires PS Plus Premium and Sony's PlayStation Plus PC app. Sony doesn't expose its catalog or per-game launch links, so add the titles you play and they'll open the PS Plus app.</div>
     ${tog('categories.games.psplus.enabled', 'Include PlayStation Plus', g.psplus.enabled)}
@@ -1339,8 +1338,8 @@ function wireEmulation(body, g, redraw) {
 let updState = null;
 function updText(u) {
   if (!u) return '';
-  const v = 'OmniLauncher ' + u.current;
-  if (!u.installed) return `${v} (portable). Automatic updates work in the installed version; get the latest setup from github.com/MagnusPerditor/omnilauncher/releases.`;
+  const v = 'Argus Launcher ' + u.current;
+  if (!u.installed) return `${v} (portable). Automatic updates work in the installed version; get the latest setup from github.com/MagnusPerditor/argus-launcher/releases.`;
   return v + ' · ' + ({ idle: 'Waiting to check', checking: 'Checking for updates…', current: 'You’re up to date', available: `Version ${u.version} is available`, downloading: `Downloading ${u.version || 'update'}… ${u.percent || 0}%`, ready: `Version ${u.version} is ready to install`, error: 'Update check failed: ' + (u.error || 'unknown error') }[u.state] || u.state);
 }
 function paintUpdates() {
@@ -1364,7 +1363,7 @@ function wireUpdates() {
 if (window.api && window.api.onUpdate) window.api.onUpdate(u => {
   const was = updState && updState.state;
   updState = u; paintUpdates();
-  if (u.state === 'ready' && was !== 'ready') toast(`OmniLauncher ${u.version} is ready. Restart to update.`, 'ok');
+  if (u.state === 'ready' && was !== 'ready') toast(`Argus Launcher ${u.version} is ready. Restart to update.`, 'ok');
 });
 
 /* ============================== scanning ============================== */

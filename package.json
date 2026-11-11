@@ -1,8 +1,8 @@
 {
-  "name": "omnilauncher",
-  "productName": "OmniLauncher",
+  "name": "argus-launcher",
+  "productName": "Argus Launcher",
   "version": "1.1.0",
-  "description": "All-in-one media launcher: movies, TV, music videos, books, audiobooks and games",
+  "description": "Argus Launcher: all-in-one media launcher for movies, TV, music, music videos, books, audiobooks and games",
   "main": "main.js",
   "author": "Geletka Tech",
   "license": "UNLICENSED",
@@ -17,8 +17,8 @@
     "electron-builder": "^26.0.0"
   },
   "build": {
-    "appId": "tech.geletka.omnilauncher",
-    "productName": "OmniLauncher",
+    "appId": "tech.geletka.arguslauncher",
+    "productName": "Argus Launcher",
     "files": [
       "main.js",
       "preload.js",
@@ -35,7 +35,8 @@
           ]
         }
       ],
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "executableName": "ArgusLauncher"
     },
     "nsis": {
       "oneClick": false,
@@ -43,15 +44,15 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "OmniLauncher",
-      "artifactName": "OmniLauncher-Setup-${version}.${ext}",
+      "shortcutName": "Argus Launcher",
+      "artifactName": "ArgusLauncher-Setup-${version}.${ext}",
       "deleteAppDataOnUninstall": false
     },
     "publish": [
       {
         "provider": "github",
         "owner": "MagnusPerditor",
-        "repo": "omnilauncher",
+        "repo": "argus-launcher",
         "releaseType": "release"
       }
     ]
@@ -61,6 +62,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/MagnusPerditor/omnilauncher.git"
+    "url": "https://github.com/MagnusPerditor/argus-launcher.git"
   }
 }

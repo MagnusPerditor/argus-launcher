@@ -1,6 +1,6 @@
 # Builds the Windows installer and publishes it as a GitHub Release.
 # Triggered by pushing a version tag, e.g.:  git tag v1.1.0 && git push origin v1.1.0
-# The tag must match "version" in package.json. Installed copies of OmniLauncher
+# The tag must match "version" in package.json. Installed copies of Argus Launcher
 # pick the new release up automatically (electron-updater reads latest.yml from the release).
 name: Release
 

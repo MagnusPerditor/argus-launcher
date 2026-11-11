@@ -2,7 +2,25 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// ---------- crash logging (written to %APPDATA%\OmniLauncher\crash.log) ----------
+// ---------- one-time migration from the old "OmniLauncher" name ----------
+// Copies settings, library, caches and tile images from %APPDATA%\OmniLauncher (the old folder is left in place).
+(function migrateFromOmniLauncher() {
+  try {
+    const newDir = app.getPath('userData');
+    const oldDir = path.join(app.getPath('appData'), 'OmniLauncher');
+    if (fs.existsSync(path.join(newDir, 'config.json')) || !fs.existsSync(path.join(oldDir, 'config.json'))) return;
+    fs.mkdirSync(newDir, { recursive: true });
+    for (const f of ['config.json', 'library.json', 'metacache.json', 'state.json']) {
+      if (fs.existsSync(path.join(oldDir, f))) fs.copyFileSync(path.join(oldDir, f), path.join(newDir, f));
+    }
+    for (const d of ['cache', 'tiles']) {
+      if (fs.existsSync(path.join(oldDir, d))) fs.cpSync(path.join(oldDir, d), path.join(newDir, d), { recursive: true });
+    }
+    fs.writeFileSync(path.join(newDir, 'migrated-from-omnilauncher.txt'), `Copied from ${oldDir} on ${new Date().toISOString()}\n`);
+  } catch (e) { /* never block startup on migration */ }
+})();
+
+// ---------- crash logging (written to %APPDATA%\Argus Launcher\crash.log) ----------
 const LOG_DIR = app.getPath('userData');
 const LOG = path.join(LOG_DIR, 'crash.log');
 const GPU_FLAG = path.join(LOG_DIR, 'gpu-disabled.flag');
@@ -12,7 +30,7 @@ function log(...parts) {
 }
 function fatal(where, err) {
   log('FATAL in ' + where, err);
-  try { dialog.showErrorBox('OmniLauncher error', `${where}:\n\n${err && err.stack || err}\n\nDetails saved to:\n${LOG}`); } catch {}
+  try { dialog.showErrorBox('Argus Launcher error', `${where}:\n\n${err && err.stack || err}\n\nDetails saved to:\n${LOG}`); } catch {}
 }
 process.on('uncaughtException', e => fatal('main process', e));
 process.on('unhandledRejection', e => log('unhandledRejection', e));
@@ -59,7 +77,7 @@ function createWindow() {
   log('creating window');
   win = new BrowserWindow({
     width: 1500, height: 920, minWidth: 1000, minHeight: 640,
-    backgroundColor: '#0b0d12', title: 'OmniLauncher', autoHideMenuBar: true,
+    backgroundColor: '#0b0d12', title: 'Argus Launcher', autoHideMenuBar: true,
     icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
@@ -155,7 +173,7 @@ app.whenReady().then(() => {
 
   log('ipc registered');
   // ---------- auto-update (installed copies only; portable copies just get told) ----------
-  const isInstalled = () => app.isPackaged && fs.existsSync(path.join(path.dirname(process.execPath), 'Uninstall OmniLauncher.exe'));
+  const isInstalled = () => app.isPackaged && fs.existsSync(path.join(path.dirname(process.execPath), 'Uninstall Argus Launcher.exe'));
   let upd = { state: 'idle', version: null, percent: 0, error: null };
   let updater = null;
   const pushUpd = patch => { upd = { ...upd, ...patch }; send('update:status', { ...upd, current: app.getVersion(), installed: isInstalled() }); };
