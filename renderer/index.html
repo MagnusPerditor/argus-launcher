@@ -89,6 +89,12 @@ select.sel{background:var(--panel);border:1px solid var(--line);border-radius:8p
 .badge.tb{color:#7fe3c2}.badge.cloud{color:#9fd0ff}.badge.gp{color:#b6f24a}.badge.ps{color:#7fa8ff}
 .card .t{margin-top:9px;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .m{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.badge.w{color:#3ecf8e}
+.ep .still{position:relative}
+.ep .eprog{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(0,0,0,.55)}.ep .eprog i{display:block;height:100%;background:var(--c-tv)}
+.ep .wk{position:absolute;right:6px;top:6px;background:rgba(10,12,18,.85);color:#3ecf8e;border-radius:6px;font-size:11px;font-weight:800;padding:2px 6px}
+.ep.done .et{color:var(--dim)}
+.wline{font-size:13px;color:var(--dim);margin-top:10px}.wline b{color:var(--text)}
 .card .prog{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(0,0,0,.5)}.card .prog i{display:block;height:100%;background:var(--cc)}
 
 /* home */
@@ -409,13 +415,48 @@ function artHtml(it, cls = '') {
   const fb = it.posterFallback ? ` data-fb="${esc(it.posterFallback)}"` : '';
   return `<img loading="lazy" class="${it.posterIsLogo ? 'logo' : ''} ${cls}" src="${esc(src)}"${fb} alt="">${ph}`;
 }
+/* ---------- watch progress helpers ---------- */
+const VIDEO_CATS = new Set(['movies', 'tv', 'musicvideos']);
+const epKey = (it, e) => `${it.id}:${e.season}:${e.episode}`;
+const prog = k => ust.progress[k];
+const sxe = e => `S${String(e.season).padStart(2, '0')}E${String(e.episode).padStart(2, '0')}`;
+const timeLeft = p => p && p.dur ? fmtTime(Math.max(0, p.dur - p.pos)) : '';
+function epList(it) {
+  const m = new Map();
+  for (const e of it.episodes || []) { const k = e.season + ':' + e.episode; if (!m.has(k) || e.source === 'local') m.set(k, e); }
+  return [...m.values()].sort((a, b) => (a.season === 0) - (b.season === 0) || a.season - b.season || a.episode - b.episode);
+}
+// What to play next for a show: the most recent half-watched episode, else the one after the last watched
+function nextUp(it) {
+  const eps = epList(it);
+  const inprog = eps.map(e => ({ e, p: prog(epKey(it, e)) })).filter(x => x.p && !x.p.watched && x.p.pos > 30).sort((a, b) => b.p.t - a.p.t)[0];
+  if (inprog) return { ep: inprog.e, resume: inprog.p.pos, p: inprog.p, started: true };
+  let lastIdx = -1;
+  eps.forEach((e, i) => { const p = prog(epKey(it, e)); if (p && p.watched) lastIdx = i; });
+  const ep = eps[lastIdx + 1];
+  return ep ? { ep, resume: 0, started: lastIdx >= 0 } : null;
+}
+function showStats(it) { const eps = epList(it); const w = eps.filter(e => (prog(epKey(it, e)) || {}).watched).length; return { total: eps.length, watched: w }; }
+function lastWatchT(it) {
+  if (it.cat === 'tv') return Math.max(0, ...epList(it).map(e => (prog(epKey(it, e)) || {}).t || 0));
+  return (prog(it.id) || {}).t || 0;
+}
 function card(it) {
   const cc = `var(--c-${it.cat})`;
-  const pr = ust.progress[it.id];
-  const prog = pr && pr.pct ? `<div class="prog"><i style="width:${Math.min(100, pr.pct * 100)}%"></i></div>` : '';
+  let bar = 0, done = false, m = subtitle(it);
+  if (it.cat === 'tv') {
+    const st = showStats(it), nu = nextUp(it);
+    done = st.total > 0 && st.watched === st.total;
+    if (!done && st.watched) bar = st.watched / st.total;
+    if (nu && nu.started) m = `Next: ${sxe(nu.ep)}${nu.resume ? ' · ' + timeLeft(nu.p) + ' left' : ''}`;
+  } else {
+    const pr = ust.progress[it.id];
+    if (pr) { done = !!pr.watched && VIDEO_CATS.has(it.cat); if (!done && pr.pct) bar = pr.pct; }
+  }
+  const progHtml = bar ? `<div class="prog"><i style="width:${Math.min(100, bar * 100)}%"></i></div>` : '';
   return `<div class="card" tabindex="0" data-id="${esc(it.id)}" data-cat="${it.cat}" style="--cc:${cc}">
-    <div class="art">${artHtml(it)}<div class="badges">${badges(it)}</div>${prog}</div>
-    <div class="t">${esc(it.title)}</div><div class="m">${esc(subtitle(it)) || '&nbsp;'}</div></div>`;
+    <div class="art">${artHtml(it)}<div class="badges">${badges(it)}${done ? '<span class="badge w">✓ Watched</span>' : ''}</div>${progHtml}</div>
+    <div class="t">${esc(it.title)}</div><div class="m">${esc(m) || '&nbsp;'}</div></div>`;
 }
 function wireImages(root) {
   root.querySelectorAll('img').forEach(img => {
@@ -477,7 +518,14 @@ function renderHome() {
       <div class="actions"><button class="btn primary" id="heroGo">${svg(ICON.play, 16)} ${pick.cat === 'games' ? 'Play' : 'Open'}</button></div></div></div>`;
   }
   const byId = new Map(all.map(i => [i.id, i]));
-  const recent = Object.entries(ust.played).sort((a, b) => b[1] - a[1]).map(([id]) => byId.get(id)).filter(Boolean).slice(0, 20);
+  const cont = all.filter(it => {
+    if (it.cat === 'tv') { const nu = nextUp(it); return nu && nu.started; }
+    if (it.cat === 'movies' || it.cat === 'musicvideos') { const p = prog(it.id); return p && !p.watched && p.pos > 30; }
+    return false;
+  }).sort((a, b) => lastWatchT(b) - lastWatchT(a)).slice(0, 20);
+  if (cont.length) html += rowHtml('Continue watching', cont, null);
+  const contIds = new Set(cont.map(i => i.id));
+  const recent = Object.entries(ust.played).sort((a, b) => b[1] - a[1]).map(([id]) => byId.get(id)).filter(it => it && !contIds.has(it.id) && !(VIDEO_CATS.has(it.cat) && (it.cat === 'tv' || (prog(it.id) || {}).watched))).slice(0, 20);
   if (recent.length) html += rowHtml('Jump back in', recent, null);
   for (const c of CATS) {
     if (!cfg.categories[c.id].enabled) continue;
@@ -725,7 +773,7 @@ function renderSearch() {
 
 /* ============================== detail ============================== */
 function findItem(cat, id) { return itemsOf(cat).find(i => i.id === id); }
-function closeDetail() { $('#detail').classList.remove('on'); }
+function closeDetail() { const was = $('#detail').classList.contains('on'); $('#detail').classList.remove('on'); if (was && ui.watchDirty) { ui.watchDirty = false; setTimeout(() => render(), 0); } }
 
 async function openDetail(cat, id) {
   const it = findItem(cat, id); if (!it) return;
@@ -775,7 +823,11 @@ async function doPlay(req, it) {
   if (req.launch && req.launch.type === 'romzip') toast('Unpacking ROM from the archive…');
   const r = await window.api.play(req);
   if (r && r.ok === false) toast(r.error || 'Could not open', 'bad');
-  else { if (r && r.note) toast(r.note); if (it) { ust = await window.api.markPlayed(it.id); } }
+  else {
+    if (r && r.note) toast(r.note);
+    if (r && r.via === 'default' && req.track && !ui.warnedDefault) { ui.warnedDefault = true; toast('Watch progress isn’t tracked with the Windows default player. Pick mpv, VLC or the built-in player in Library Setup → General.'); }
+    if (it) { ust = await window.api.markPlayed(it.id); }
+  }
 }
 
 function fileRows(it, action, labelFor) {
@@ -785,7 +837,7 @@ function fileRows(it, action, labelFor) {
     ${f.source === 'local' ? `<button class="btn small ghost" data-folder="${i}" title="Show in folder">${svg(ICON.folder, 15)}</button>` : ''}</div>`).join('')}</div>`;
 }
 function wireFileRows(root, it, action) {
-  root.querySelectorAll('[data-fi]').forEach(b => b.onclick = () => doPlay({ action, file: it.files[+b.dataset.fi], title: it.title }, it));
+  root.querySelectorAll('[data-fi]').forEach(b => b.onclick = () => action === 'video' && VIDEO_CATS.has(it.cat) ? playVideoItem(it, it.files[+b.dataset.fi], it.title, it.id, 0) : doPlay({ action, file: it.files[+b.dataset.fi], title: it.title }, it));
   root.querySelectorAll('[data-folder]').forEach(b => b.onclick = () => window.api.play({ action: 'folder', path: it.files[+b.dataset.folder].path }));
 }
 
@@ -827,12 +879,28 @@ function wireReclass(it) {
   };
 }
 
+function playVideoItem(it, file, title, key, resume) { return doPlay({ action: 'video', file, title, track: { key, resume: resume || 0 } }, it); }
+function watchControls(it, key, A, label, files) {
+  // files: [{file, label}] — first is the main one. Adds Resume/Play, Start over, Mark watched + a progress line.
+  const p = prog(key), resumable = p && !p.watched && p.pos > 30;
+  const [main, ...rest] = files;
+  let h = resumable
+    ? `<button class="btn primary" id="wResume">${svg(ICON.play, 16)} Resume · ${fmtTime(p.pos)}</button><button class="btn" id="wStart">Start over</button>`
+    : `<button class="btn primary" id="wResume">${svg(ICON.play, 16)} ${main.label}</button>`;
+  h += rest.map((r, i) => `<button class="btn" data-alt="${i}">${svg(ICON.play, 16)} ${r.label}</button>`).join('');
+  h += `<button class="btn ghost" id="wMark">${p && p.watched ? '↺ Mark unwatched' : '✓ Mark watched'}</button>`;
+  A.innerHTML = h + A.innerHTML;
+  if (resumable) A.insertAdjacentHTML('afterend', `<div class="wline"><b>${Math.round(p.pct * 100)}% watched</b> · ${timeLeft(p)} left</div>`);
+  else if (p && p.watched) A.insertAdjacentHTML('afterend', `<div class="wline">✓ Watched</div>`);
+  $('#wResume').onclick = () => playVideoItem(it, main.file, label, key, resumable ? p.pos : 0);
+  if ($('#wStart')) $('#wStart').onclick = () => playVideoItem(it, main.file, label, key, 0);
+  A.querySelectorAll('[data-alt]').forEach(b => b.onclick = () => playVideoItem(it, rest[+b.dataset.alt].file, label, key, resumable ? p.pos : 0));
+  $('#wMark').onclick = async () => { ust = await window.api.markWatched([key], !(p && p.watched)); openDetail(it.cat, it.id); };
+}
 function detailMovie(it, A, B) {
   const local = it.files.find(f => f.source === 'local'), tb = it.files.find(f => f.source === 'torbox');
-  if (local) A.innerHTML += `<button class="btn primary" id="pLocal">${svg(ICON.play, 16)} Play</button>`;
-  if (tb) A.innerHTML += `<button class="btn ${local ? '' : 'primary'}" id="pTb">${svg(ICON.play, 16)} Stream from TorBox</button>`;
-  if (local) $('#pLocal').onclick = () => doPlay({ action: 'video', file: local, title: it.title }, it);
-  if (tb) $('#pTb').onclick = () => doPlay({ action: 'video', file: tb, title: it.title }, it);
+  const files = [local && { file: local, label: 'Play' }, tb && { file: tb, label: 'Stream from TorBox' }].filter(Boolean);
+  if (files.length) watchControls(it, it.id, A, it.title, files);
   let html = watchSection(it, 'movies');
   if (it.meta && it.meta.cast && it.meta.cast.length) html += `<div class="sect"><h4>Cast</h4><div class="note">${esc(it.meta.cast.join(', '))}</div></div>`;
   if (it.files.length) html += `<div class="sect"><h4>Files</h4>${fileRows(it, 'video', () => 'Play')}</div>`;
@@ -844,13 +912,17 @@ async function detailTv(it, A, B) {
   const metaSeasons = (it.meta && it.meta.seasons || []).filter(s => s.n > 0 || it.episodes.some(e => e.season === 0));
   const have = [...new Set(it.episodes.map(e => e.season))];
   const seasons = [...new Set([...metaSeasons.map(s => s.n), ...have])].sort((a, b) => (a === 0) - (b === 0) || a - b);
+  let cur0 = null;
   let cur = have.length ? Math.min(...have.filter(n => n > 0).concat(have)) : seasons[0];
-  const next = it.episodes.find(e => !ust.progress[it.id + ':' + e.season + ':' + e.episode]) || it.episodes[0];
-  if (next) {
-    A.innerHTML = `<button class="btn primary" id="pNext">${svg(ICON.play, 16)} Play S${String(next.season).padStart(2, '0')}E${String(next.episode).padStart(2, '0')}</button>`;
-    $('#pNext').onclick = () => playEp(it, next);
+  const nu = nextUp(it);
+  const st = showStats(it);
+  if (nu) {
+    A.innerHTML = `<button class="btn primary" id="pNext">${svg(ICON.play, 16)} ${nu.resume ? `Resume ${sxe(nu.ep)} · ${fmtTime(nu.resume)}` : `${nu.started ? 'Next up: ' : 'Play '}${sxe(nu.ep)}`}</button>`;
+    $('#pNext').onclick = () => playEp(it, nu.ep, nu.resume);
+    if (nu.ep.season !== undefined) cur0 = nu.ep.season;
   }
-  B.innerHTML = `<div class="sect"><h4>Episodes</h4><div class="seasons" id="seasons"></div><div class="eps" id="eps"></div></div>` + watchSection(it, 'tv') + reclassifyHtml(it);
+  if (st.watched) A.insertAdjacentHTML('afterend', `<div class="wline"><b>${st.watched} of ${st.total}</b> episodes watched${st.watched === st.total ? ' ✓' : ''}</div>`);
+  B.innerHTML = `<div class="sect"><h4 style="display:flex;align-items:center;gap:12px">Episodes <button class="btn small ghost" id="seasonMark" style="text-transform:none;letter-spacing:0"></button></h4><div class="seasons" id="seasons"></div><div class="eps" id="eps"></div></div>` + watchSection(it, 'tv') + reclassifyHtml(it);
   wireReclass(it);
   B.querySelectorAll('[data-url]').forEach(b => b.onclick = () => window.api.openExternal(b.dataset.url));
   const drawSeasons = () => {
@@ -867,7 +939,16 @@ async function detailTv(it, A, B) {
       if (Array.isArray(meta) && meta.length && cur === +($('#seasons .chip.on') || {}).dataset?.s) { $('#eps').innerHTML = epRows(it, mine, meta); wireEps(it, mine); }
     }
   };
-  drawSeasons(); drawEps();
+  if (cur0 !== null && seasons.includes(cur0)) cur = cur0;
+  const paintSeasonMark = () => {
+    const keys = epList(it).filter(e => e.season === cur).map(e => epKey(it, e));
+    const all = keys.length && keys.every(k => (prog(k) || {}).watched);
+    $('#seasonMark').textContent = all ? '↺ Mark season unwatched' : '✓ Mark season watched';
+    $('#seasonMark').style.display = keys.length ? '' : 'none';
+    $('#seasonMark').onclick = async () => { ust = await window.api.markWatched(keys, !all); drawEps(); paintSeasonMark(); };
+  };
+  drawSeasons(); drawEps(); paintSeasonMark();
+  $('#seasons').addEventListener('click', () => setTimeout(paintSeasonMark, 0));
 }
 function epRows(it, mine, meta) {
   const nums = [...new Set([...meta.map(m => m.n), ...mine.map(e => e.episode)])].sort((a, b) => a - b);
@@ -876,33 +957,38 @@ function epRows(it, mine, meta) {
     const files = mine.filter(e => e.episode === n);
     const title = m.title || (files[0] && files[0].title) || 'Episode ' + n;
     const local = files.find(f => f.source === 'local'), tb = files.find(f => f.source === 'torbox');
-    return `<div class="ep ${files.length ? '' : 'miss'}"><div class="still">${m.still ? `<img loading="lazy" src="${esc(m.still)}">` : 'E' + n}</div>
+    const season = (mine[0] || {}).season, p = prog(`${it.id}:${season}:${n}`);
+    const bar = p && !p.watched && p.pct ? `<div class="eprog"><i style="width:${Math.round(p.pct * 100)}%"></i></div>` : '';
+    return `<div class="ep ${files.length ? '' : 'miss'} ${p && p.watched ? 'done' : ''}"><div class="still">${m.still ? `<img loading="lazy" src="${esc(m.still)}">` : 'E' + n}${bar}${p && p.watched ? '<span class="wk">✓</span>' : ''}</div>
       <div><div class="et">${n}. ${esc(title)}</div><div class="eo">${esc(m.overview || (files[0] ? files[0].name : ''))}</div></div>
-      <div class="eb">${local ? `<button class="btn small" data-ep="${n}" data-src="local">${svg(ICON.play, 13)} Play</button>` : ''}
+      <div class="eb">${local ? `<button class="btn small" data-ep="${n}" data-src="local">${svg(ICON.play, 13)} ${p && !p.watched && p.pos > 30 ? 'Resume' : 'Play'}</button>` : ''}
       ${tb ? `<button class="btn small" data-ep="${n}" data-src="torbox">${svg(ICON.play, 13)} TorBox</button>` : ''}
+      ${files.length ? `<button class="btn small ghost" data-wk="${n}" >${p && p.watched ? '↺ Unwatch' : '✓ Watched'}</button>` : ''}
       ${!files.length ? `<span class="note">Not in library</span>` : ''}</div></div>`;
   }).join('') || '<div class="note">No episodes.</div>';
 }
 function wireEps(it, mine) {
   $('#eps').querySelectorAll('[data-ep]').forEach(b => b.onclick = () => {
     const f = mine.find(e => e.episode === +b.dataset.ep && e.source === b.dataset.src);
-    playEp(it, f);
+    const p = prog(epKey(it, f));
+    playEp(it, f, p && !p.watched && p.pos > 30 ? p.pos : 0);
+  });
+  $('#eps').querySelectorAll('[data-wk]').forEach(b => b.onclick = async () => {
+    const e = mine.find(x => x.episode === +b.dataset.wk); const k = epKey(it, e); const p = prog(k);
+    ust = await window.api.markWatched([k], !(p && p.watched));
+    const sel = $('#seasons .chip.on'); if (sel) sel.click();
   });
 }
-async function playEp(it, ep) {
-  await doPlay({ action: 'video', file: ep, title: `${it.title} S${ep.season}E${ep.episode}` }, it);
-  window.api.saveProgress(it.id + ':' + ep.season + ':' + ep.episode, { watched: true });
-  ust.progress[it.id + ':' + ep.season + ':' + ep.episode] = { watched: true };
+async function playEp(it, ep, resume) {
+  await playVideoItem(it, ep, `${it.title} ${sxe(ep)}`, epKey(it, ep), resume || 0);
 }
 
 function detailMv(it, A, B) {
   const f = it.files[0];
-  A.innerHTML = `<button class="btn primary" id="pMv">${svg(ICON.play, 16)} ${f.source === 'torbox' ? 'Stream from TorBox' : 'Play'}</button>`;
-  $('#pMv').onclick = () => doPlay({ action: 'video', file: f, title: `${it.artist} - ${it.title}` }, it);
+  watchControls(it, it.id, A, `${it.artist} - ${it.title}`, [{ file: f, label: f.source === 'torbox' ? 'Stream from TorBox' : 'Play' }]);
   const m = it.meta || {};
   if (m.youtube) A.innerHTML += `<button class="btn" data-url="https://www.youtube.com/watch?v=${esc(m.youtube)}">${svg(ICON.ext, 15)} Official video</button>`;
   if (m.url) A.innerHTML += `<button class="btn ghost" data-url="${esc(m.url)}">${svg(ICON.ext, 15)} IMVDb</button>`;
-  $('#pMv').onclick = () => doPlay({ action: 'video', file: f, title: `${it.artist} - ${it.title}` }, it);
   const svcs = enabledServices('musicvideos');
   let html = svcs.length ? `<div class="sect"><h4>Find on your services</h4><div class="services">${svcs.map(s => svcButton(s, svcSearch(s, it.artist + ' ' + it.title), true)).join('')}</div></div>` : '';
   html += `<div class="sect"><h4>File</h4>${fileRows(it, 'video', () => 'Play')}</div>` + reclassifyHtml(it);
@@ -1364,6 +1450,19 @@ if (window.api && window.api.onUpdate) window.api.onUpdate(u => {
   const was = updState && updState.state;
   updState = u; paintUpdates();
   if (u.state === 'ready' && was !== 'ready') toast(`Argus Launcher ${u.version} is ready. Restart to update.`, 'ok');
+});
+
+/* ============================== live watch progress ============================== */
+if (window.api && window.api.onWatch) window.api.onWatch(u => {
+  const was = ust.progress[u.key];
+  ust.progress[u.key] = u.data;
+  // patch progress bars in place; re-render when something flips to watched (and nothing is open)
+  const id = u.key.split(':').slice(0, 2).join(':');
+  document.querySelectorAll(`.card[data-id="${CSS.escape(id)}"] .prog i`).forEach(i => i.style.width = Math.min(100, (u.data.pct || 0) * 100) + '%');
+  if ((!was || !was.watched) && u.data.watched) {
+    if ($('#detail').classList.contains('on')) ui.watchDirty = true;
+    else if (ui.view !== 'setup' && !nav.mode) render();
+  }
 });
 
 /* ============================== scanning ============================== */

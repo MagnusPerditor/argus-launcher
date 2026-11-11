@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('api', {
   getState: () => call('state:get'),
   markPlayed: id => call('state:played', id),
   saveProgress: (id, data) => call('state:progress', id, data),
+  markWatched: (keys, watched) => call('state:mark', keys, watched),
+  onWatch: fn => ipcRenderer.on('progress:update', (_e, u) => fn(u)),
   torboxLink: tb => call('torbox:link', tb),
   torboxOverride: (key, cat) => call('torbox:override', key, cat),
   play: req => call('play', req),

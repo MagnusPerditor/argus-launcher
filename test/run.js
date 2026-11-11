@@ -51,6 +51,15 @@ t('libretro url', () => { const u = E.boxartUrls(E.BY_ID.snes, 'Mario & Luigi (U
 t('arg template', () => assert.deepStrictEqual(E.splitArgs('-b -e "{rom}"', 'D:\\ROMs\\GC\\Metroid Prime.rvz'), ['-b', '-e', 'D:\\ROMs\\GC\\Metroid Prime.rvz']));
 t('arg template rom only', () => assert.deepStrictEqual(E.splitArgs('', 'C:\\a b.iso'), ['C:\\a b.iso']));
 
+// ---------- watch progress ----------
+const W = require('../lib/watch');
+t('watch partial', () => assert.deepStrictEqual(W.summarize(600, 6000), { pos: 600, dur: 6000, pct: 0.1, watched: false }));
+t('watch 90%', () => assert.strictEqual(W.summarize(5450, 6000).watched, true));
+t('watch credits tail', () => assert.strictEqual(W.summarize(5900, 6100).watched, true));
+t('watch short clip needs 90%', () => assert.strictEqual(W.summarize(100, 240).watched, false));
+t('watch keeps watched on restart', () => assert.strictEqual(W.summarize(2, 6000, { watched: true }).watched, true));
+t('watch rewatch resets after 5s', () => assert.strictEqual(W.summarize(600, 6000, { watched: true }).watched, false));
+
 // ---------- launcher file formats ----------
 t('vdf paths', () => assert.deepStrictEqual(G.parseVdfPaths('"libraryfolders"\n{\n "0"\n {\n  "path"  "C:\\\\Program Files (x86)\\\\Steam"\n }\n "1"\n {\n  "path"  "D:\\\\SteamLibrary"\n }\n}'), ['C:\\Program Files (x86)\\Steam', 'D:\\SteamLibrary']));
 t('acf', () => { const a = G.parseAcf('"AppState"\n{\n "appid" "620"\n "name" "Portal 2"\n "installdir" "Portal 2"\n "LastPlayed" "1700000000"\n}'); assert.strictEqual(a.appid, '620'); assert.strictEqual(a.name, 'Portal 2'); });

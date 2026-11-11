@@ -53,13 +53,19 @@ const src = `// AUTO-GENERATED preview backend (not used by the app)
 (() => {
   const lib = ${JSON.stringify(lib)};
   let cfg = ${JSON.stringify(cfg)};
-  const state = { played: { [lib.movies[0].id]: Date.now() - 5000, [lib.audiobooks[0].id]: Date.now() }, progress: { [lib.audiobooks[0].id]: { track: 1, pos: 412, pct: 0.6 } } };
+  const sev = lib.tv.find(s => s.title === 'Severance');
+  const state = { played: { [lib.movies[0].id]: Date.now() - 5000, [lib.audiobooks[0].id]: Date.now() }, progress: {
+    [lib.audiobooks[0].id]: { track: 1, pos: 412, pct: 0.6 },
+    [lib.movies.find(m => m.title === 'Heat').id]: { pos: 3742, dur: 10200, pct: 0.367, watched: false, t: Date.now() - 1000 },
+    [lib.movies.find(m => m.title === 'The Matrix').id]: { pos: 8160, dur: 8160, pct: 1, watched: true, t: Date.now() - 900000 },
+    [sev.id + ':1:1']: { pos: 3300, dur: 3300, pct: 1, watched: true, t: Date.now() - 50000 },
+    [sev.id + ':1:2']: { pos: 1260, dur: 3240, pct: 0.389, watched: false, t: Date.now() - 2000 } } };
   const catalog = ${JSON.stringify({ video: services.VIDEO_SERVICES, music: services.MUSIC_VIDEO_SERVICES, audio: services.MUSIC_SERVICES })};
   const ok = v => Promise.resolve(v);
   window.api = {
     getConfig: () => ok(JSON.parse(JSON.stringify(cfg))), setConfig: c => { cfg = c; return ok(c); }, catalog: () => ok(catalog),
     getLibrary: () => ok(lib), rescan: () => ok(lib), season: (id, n) => ok([1,2,3,4].map(e => ({ n: e, title: 'Episode title ' + e, overview: 'A description of what happens in this episode.' }))),
-    getState: () => ok(state), markPlayed: id => { state.played[id] = Date.now(); return ok(state); }, saveProgress: () => ok(true),
+    getState: () => ok(state), markPlayed: id => { state.played[id] = Date.now(); return ok(state); }, saveProgress: () => ok(true), markWatched: (keys, w) => { for (const k of [].concat(keys)) { if (w) state.progress[k] = { pos: 1, dur: 1, pct: 1, watched: true, t: Date.now() }; else delete state.progress[k]; } return ok(state); }, onWatch: () => {},
     torboxLink: () => ok('about:blank'), torboxOverride: () => ok(lib), play: r => { console.log('play', JSON.stringify(r)); return ok({ ok: true }); },
     openExternal: u => { console.log('open', u); return ok(true); }, pickFolders: () => ok(['D:\\\\Media\\\\New']), pickFile: () => ok('C:\\\\x.exe'),
     setFullScreen: () => ok(true), setZoom: f => { document.body.style.zoom = f; }, updateInfo: () => ok({ state: 'ready', version: '1.2.0', current: '1.1.0', installed: true, percent: 100 }), updateCheck: () => ok({ ok: true }), updateInstall: () => ok({}), updateDownload: () => ok({}), onUpdate: () => {}, tilesList: () => ok({}), tilesBundled: () => ok({'nes': '../assets/tiles/nes.jpg', 'ps2': '../assets/tiles/ps2.jpg', 'pc': '../assets/tiles/pc.jpg', 'gamepass': '../assets/tiles/gamepass.jpg', 'nds': '../assets/tiles/nds.jpg', 'n64': '../assets/tiles/n64.jpg', 'psx': '../assets/tiles/psx.jpg', 'snes': '../assets/tiles/snes.jpg', 'cloud': '../assets/tiles/cloud.jpg', 'gc': '../assets/tiles/gc.jpg', 'torbox': '../assets/tiles/torbox.jpg', 'genesis': '../assets/tiles/genesis.jpg', 'gba': '../assets/tiles/gba.jpg', 'psplus': '../assets/tiles/psplus.jpg'}), tilesPick: () => ok({}), tilesSet: () => ok({}), emuSystems: () => ok(${JSON.stringify(E.SYSTEMS)}), emuDetect: () => ok({ retroarch: 'C:\\\\RetroArch-Win64\\\\retroarch.exe', cores: ['snes9x', 'swanstation'] }), emuCores: () => ok(['snes9x', 'swanstation', 'mupen64plus_next']), emuAutoAssign: () => ok([]), detectPlayers: () => ok({ vlc: 'C:\\\\Program Files\\\\VideoLAN\\\\VLC\\\\vlc.exe', mpv: '' }), detectPsPlus: () => ok({ app: null }), testKey: () => ok({ ok: true, msg: 'works' }), onProgress: () => {},

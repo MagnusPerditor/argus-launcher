@@ -16,6 +16,14 @@ Set VLC or mpv as your player in Library Setup → General and try again.</div><
   const v = document.getElementById('v');
   document.title = q.get('title') || 'Player';
   v.src = q.get('src');
+  const key = q.get('key'), start = +q.get('start') || 0;
+  if (start > 5) v.addEventListener('loadedmetadata', () => { v.currentTime = Math.min(start, v.duration - 3); }, { once: true });
+  let last = 0;
+  const report = force => { if (!key || !window.argusPlayer || !v.duration) return; const now = Date.now(); if (force || now - last > 4000) { last = now; window.argusPlayer.report(key, v.currentTime, v.duration); } };
+  v.addEventListener('timeupdate', () => report(false));
+  v.addEventListener('pause', () => report(true));
+  v.addEventListener('ended', () => report(true));
+  addEventListener('beforeunload', () => report(true));
   v.addEventListener('error', () => { document.getElementById('err').style.display = 'flex'; v.style.display = 'none'; });
   addEventListener('keydown', e => {
     if (e.key === ' ') { e.preventDefault(); v.paused ? v.play() : v.pause(); }

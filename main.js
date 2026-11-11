@@ -68,6 +68,7 @@ const { Tmdb, Omdb, SteamGrid } = require('./lib/scrapers');
 const { detectPsPlus } = require('./lib/games');
 const E = require('./lib/emulation');
 const services = require('./lib/services');
+const { summarize } = require('./lib/watch');
 
 let win, store, library, launcher;
 
@@ -98,7 +99,18 @@ app.whenReady().then(() => {
     shell, BrowserWindow, app, rendererDir: path.join(__dirname, 'renderer'),
     getConfig: () => store.getConfig(),
     torbox: () => new TorBox(store.getConfig().keys.torbox),
+    onProgress: (key, raw) => saveWatch(key, raw),
   });
+  // ---- watch progress (movies, episodes, music videos) ----
+  const readState = () => ({ played: {}, progress: {}, ...store.read('state', {}) });
+  function saveWatch(key, raw) {
+    const s = readState();
+    const prev = s.progress[key] || {};
+    s.progress[key] = { ...prev, ...summarize(raw.pos, raw.dur, prev), t: Date.now() };
+    store.write('state', s);
+    send('progress:update', { key, data: s.progress[key] });
+  }
+  ipcMain.on('player:progress', (_e, key, pos, dur) => { if (key) saveWatch(key, { pos, dur }); });
 
   const handle = (ch, fn) => ipcMain.handle(ch, async (_e, ...args) => {
     try { return await fn(...args); } catch (err) { return { ok: false, error: err.message || String(err) }; }
@@ -112,6 +124,15 @@ app.whenReady().then(() => {
   handle('library:season', (tvId, n) => library.season(tvId, n));
   handle('state:get', () => store.read('state', { played: {}, progress: {} }));
   handle('state:played', id => { const s = store.read('state', { played: {}, progress: {} }); s.played[id] = Date.now(); store.write('state', s); return s; });
+  handle('state:mark', (keys, watched) => {
+    const s = readState();
+    for (const k of [].concat(keys || [])) {
+      if (watched) { const prev = s.progress[k] || {}; s.progress[k] = { ...prev, pos: prev.dur || prev.pos || 0, pct: 1, watched: true, t: Date.now() }; }
+      else delete s.progress[k];
+    }
+    store.write('state', s);
+    return s;
+  });
   handle('state:progress', (id, data) => { const s = store.read('state', { played: {}, progress: {} }); s.progress[id] = { ...data, t: Date.now() }; store.write('state', s); return true; });
   handle('torbox:link', tb => launcher.torboxLink(tb));
   handle('torbox:override', async (key, cat) => {
