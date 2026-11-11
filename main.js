@@ -194,7 +194,18 @@ app.whenReady().then(() => {
 
   log('ipc registered');
   // ---------- auto-update (installed copies only; portable copies just get told) ----------
-  const isInstalled = () => app.isPackaged && fs.existsSync(path.join(path.dirname(process.execPath), 'Uninstall Argus Launcher.exe'));
+  // NSIS names the uninstaller after the product file name ("Uninstall ArgusLauncher.exe" today), so accept any
+  // "Uninstall *.exe" next to the exe rather than one exact name. Portable folders have no uninstaller.
+  let installedCache = null;
+  const isInstalled = () => {
+    if (installedCache !== null) return installedCache;
+    if (!app.isPackaged) return (installedCache = false);
+    const dir = path.dirname(process.execPath);
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch {}
+    installedCache = names.some(n => /^uninstall .*\.exe$/i.test(n));
+    return installedCache;
+  };
   let upd = { state: 'idle', version: null, percent: 0, error: null };
   let updater = null;
   const pushUpd = patch => { upd = { ...upd, ...patch }; send('update:status', { ...upd, current: app.getVersion(), installed: isInstalled() }); };

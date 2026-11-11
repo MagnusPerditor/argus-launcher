@@ -1,7 +1,7 @@
 {
   "name": "argus-launcher",
   "productName": "Argus Launcher",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Argus Launcher: all-in-one media launcher for movies, TV, music, music videos, books, audiobooks and games",
   "main": "main.js",
   "author": "Geletka Tech",
